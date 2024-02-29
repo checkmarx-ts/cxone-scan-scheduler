@@ -32,6 +32,7 @@ try:
     policies = utils.load_policies()
     default_schedule = utils.load_default_schedule()
     group_schedules = utils.load_group_schedules(policies)
+    update_delay = utils.load_schedule_update_delay()
 
 
     __log.debug("Configuration loaded")
@@ -42,8 +43,8 @@ try:
         the_scheduler = await Scheduler.start(client, default_schedule, group_schedules, policies)
 
         while True:
-            await asyncio.sleep(60)
-            __log.info("evaluate schedule!!!")
+            await asyncio.sleep(update_delay)
+            __log.info("Updating schedule...")
 
 
         # TODO: Sleep in a loop, adjust schedule

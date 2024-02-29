@@ -158,6 +158,7 @@ The following runtime environment variables are required to configure the system
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
 |`SSL_VERIFY`|`True`| Set to `False` to turn off SSL certificate validation.|
 |`PROXY`| N/A | Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
+|`UPDATE_DELAY_SECONDS`| 43200 | The number of seconds to delay between checking for updates in the schedule.|
 
 
 

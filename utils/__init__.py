@@ -36,6 +36,12 @@ def load_secrets():
 
     return (tenant, oauth_id, oauth_secret)
 
+def load_schedule_update_delay():
+    if not 'UPDATE_DELAY_SECONDS' in os.environ.keys() is None:
+        return 43200
+    else:
+        return int(os.environ['UPDATE_DELAY_SECONDS'])
+
 
 def load_region():
     if not 'CXONE_REGION' in os.environ.keys() is None:
