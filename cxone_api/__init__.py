@@ -312,6 +312,15 @@ class CxOneClient:
 
         return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
     
+
+    async def execute_scan(self, payload, **kwargs):
+
+        url = urljoin(self.api_endpoint, "scans")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+
+        return await self.__exec_request(requests.post, url, json=payload, headers=await self.__get_request_headers() )
+
+    
     async def get_sast_scan_log(self, scanid, stream=False):
         url = urljoin(self.api_endpoint, f"logs/{scanid}/sast")
         return await self.__exec_request(requests.get, url, stream=stream, headers=await self.__get_request_headers() )

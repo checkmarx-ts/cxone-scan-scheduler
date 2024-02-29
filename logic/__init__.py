@@ -41,7 +41,7 @@ class Scheduler:
                 if len(branch) == 0:
                     branch = await repo_details.primary_branch
 
-                engines = utils.normalize_engine_set((elements.pop(0) if len(elements) > 0 else 'all'))
+                engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
 
                 if (await repo_details.is_valid()):
                     return {project_data['id'] : [utils.ProjectSchedule(project_data['id'], ss, branch, engines, await repo_details.repo_url)]}
@@ -87,7 +87,7 @@ class Scheduler:
                     
                         if ss is not None:
                             project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
-                                                                        await repo_cfg.primary_branch, 'all', await repo_cfg.repo_url))
+                                                                        await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url))
 
                     if len(project_schedules) > 0:
                         result[project['id']] = project_schedules
@@ -95,7 +95,7 @@ class Scheduler:
                         ss = utils.ScheduleString(self.__default_schedule, self.__policies)
                         if ss.is_valid():
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
-                                                                                await repo_cfg.primary_branch, 'all', await repo_cfg.repo_url)]
+                                                                                await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url)]
                 else:
                     Scheduler.__log.warn(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
 

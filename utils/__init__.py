@@ -205,7 +205,7 @@ def get_proxy_config():
 
 
 def normalize_engine_set(engine_string):
-    available = ['sast', 'kics','sca','api']
+    available = ['sast', 'kics','sca','apisec']
     result = available if 'all' in engine_string.lower() or len(engine_string) == 0 else []
 
     if len(result) == 0:
