@@ -5,15 +5,15 @@ A container that will monitor a CxOne tenant and schedule scans for projects tag
 
 ## Scheduling Project Scanning
 
-There are two pre-requisites for scheduling scans:
+Scheduling scans for a project require the project has a configured way to clone code from the repository to be scanned.
+If the repository is private, a supported set of credentials must also be configured so that the code for scanning can be
+cloned.
 
-1. The project is configured with the following:
-    * The repository URL
-    * (optional) The primary branch
-    * (optional) Repository credentials
-2. The project is tagged with `schedule` tags.
+The following methods can be used to schedule a scan:
 
-Scans submitted by the scheduler are tagged with `scheduled`.
+* The project is tagged with a `schedule` tag that specifies the schedule scan parameters.
+* A project is assigned to one or more groups with a configured group schedule.
+* A global default schedule is defined and the project is not configured for a scheduled scan via any other method.
 
 
 ### Scheduling via Tags
@@ -32,7 +32,7 @@ The `<schedule>` for scans can be one of the following values:
 
 * `hourly`
 * `daily`
-* A valid [crontab string](https://www.adminschoice.com/crontab-quick-reference)
+* A custom configured [policy name](#policy-definitions).
 
 
 #### Element: `<branch>`
@@ -104,7 +104,8 @@ Schedule a daily scan of the project's primary branch using all engines.
 schedule:daily
 ```
 
-Schedule a daily scan limited to weekdays using the project's primary branch and the sast engine.
+Schedule a daily scan at midnight limited to weekdays using the 
+project's primary branch and the sast engine.
 
 ```
 schedule:* * * * 1-5::sast
@@ -118,8 +119,9 @@ schedule:* * * * 1-5:master:sast,sca
 
 ## Scan Scheduler Configuration
 
-The Scan Scheduler runs as a container.  At startup, it crawls the tenant's projects and creates the scan schedule.  It then checks hourly
-for any schedule changes and updates the scan schedules accordingly.
+The Scan Scheduler runs as a container.  At startup, it crawls the tenant's projects and creates the scan schedule.  It then 
+checks periodically for any schedule changes and updates 
+the scan schedules accordingly.
 
 ### Required Secrets
 
@@ -140,7 +142,7 @@ TODO: What roles for scanning?
 
 IAM Roles
 
-manage-groups only required if doing group schedule mapping.
+`manage-groups` only required if doing group schedule mapping.
 
 
 ### Environment Variables
@@ -150,7 +152,7 @@ The following runtime environment variables are required to configure the system
 |Variable|Default|Description|
 |-|-|-|
 |`CXONE_REGION`|US|The endpoint region used by your CheckmarxOne tenant. For a list of valid region values, see [the regions section](#regions) below.|
-|`GLOBAL_DEFAULT_SCHEDULE`|N/A|The default schedule to apply to projects that do not have `schedule` tags.  If not provided, projects that do not have a `schedule` tag will not be scanned with the scheduler.|
+|`GLOBAL_DEFAULT_SCHEDULE`|N/A|The default schedule to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler.|
 |`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in the Checkmarx One tenant. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.
 |`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value.  The value of this environment variable is a valid `<schedule>` string.|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
@@ -158,6 +160,31 @@ The following runtime environment variables are required to configure the system
 |`PROXY`| N/A | Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
 
 
+
+### Policy Definitions
+
+Policy definitions allow for scheduled times to be named with a custom name.  These are configured
+as environment variables named `POLICY_<name>` where `name` will be matched with the schedule name
+using the following criteria:
+
+* Matches are case-insensitive.
+* Separators such as underscore (`_`) and dashes (`-`) are considered equivalent.
+
+The value assigned to the environment variable is a valid 
+[crontab string](https://www.adminschoice.com/crontab-quick-reference). 
+
+#### Examples of Policy Definitions
+
+Policy definition named `mypolicy` that scans at midnight on weekdays.  It can be referenced with the tag `schedule:mypolicy`.
+```
+POLICY_MYPOLICY=* * * * 1-5
+```
+
+Policy definition named `general-audit-policy` that scans at midnight on weekdays.  It can be referenced with
+the tag `schedule:general-audit-policy` or `schedule:general_audit_policy`.
+```
+POLICY_GENERAL_AUDIT_POLICY=* * * * 1-5
+```
 
 
 ### Regions
@@ -173,3 +200,11 @@ Valid region values:
 * Singapore
 
 
+## Best Practices
+
+### Scan Timing
+
+It is possible to use a crontab string to schedule scans at a high repeat rate.
+This is generally a bad idea as it will likely cause scans to queue while waiting for
+available resources.  This can lead to experiencing longer scan times for
+non-scheduled scans.
