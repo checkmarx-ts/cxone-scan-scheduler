@@ -345,11 +345,12 @@ class ProjectRepoConfig:
 
     @property
     async def primary_branch(self):
-        return self.__project_data['mainBranch']
+        return self.__project_data['mainBranch'] if len(self.__project_data['mainBranch']) > 0 else None
 
     @property
     async def repo_url(self):
-        return await self.__get_logical_repo_url()
+        url = await self.__get_logical_repo_url()
+        return url if len(url) > 0 else None
 
     async def is_valid(self):
         return (await self.repo_url) is not None and (await self.primary_branch) is not None

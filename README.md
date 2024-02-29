@@ -152,7 +152,7 @@ The following runtime environment variables are required to configure the system
 |Variable|Default|Description|
 |-|-|-|
 |`CXONE_REGION`|US|The endpoint region used by your CheckmarxOne tenant. For a list of valid region values, see [the regions section](#regions) below.|
-|`GLOBAL_DEFAULT_SCHEDULE`|N/A|The default schedule to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler.|
+|`GLOBAL_DEFAULT_SCHEDULE`|N/A|This defines the default schedule to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable is a valid `<schedule>` string. |
 |`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in the Checkmarx One tenant. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.
 |`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value.  The value of this environment variable is a valid `<schedule>` string.|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|

@@ -1,7 +1,10 @@
 from . import log_cfg
+import logging
 import os, re, logging
 from pathlib import Path
 from cron_validator import CronValidator
+
+__log = logging.getLogger("utils")
 
 
 def get_secret_path():
@@ -46,19 +49,52 @@ def load_default_schedule():
         return os.environ['GLOBAL_DEFAULT_SCHEDULE']
     else:
         return None
+
+
+def load_policies():
+    policies = {}
     
+    for k in os.environ.keys():
+        if k.lower().startswith("policy_"):
+            policy_name = k.lower()[len("policy_"):]
+            policy_value = os.environ[k]
+            if CronValidator.parse(policy_value) is None:
+                __log.error(f"Crontab string [{policy_value}] for policy {policy_name} is invalid, skipping.")
+                continue
+
+            normalized_policy_name = policy_name.replace("_", "*").replace("-", "*")
+
+            def insert_policy(name):
+                if name not in policies.keys():
+                    policies[name] = policy_value
+                else:
+                    __log.error(f"Policy [{name}] already exists, skipping duplicate definition")
+
+            if normalized_policy_name == policy_name:
+                insert_policy(normalized_policy_name)
+            else:
+                insert_policy(normalized_policy_name.replace("*", "-"))
+                insert_policy(normalized_policy_name.replace("*", "_"))
+    
+    return policies
+
+
+
 class ScheduleString:
 
     __daily = "0 */23 * * *"
     __hourly = "0 * * * *"
 
-    def __init__(self, schedule):
-        self.__validator = re.compile("^hourly$|^daily$")
+    def __init__(self, schedule, policy_dict):
+        policy_strings = [f"^{x}$" for x in policy_dict.keys()]
+        policy_strings.append("^hourly$|^daily$")
+        self.__validator = re.compile("|".join(policy_strings))
         self.__schedule = schedule.lower()
+        self.__policies = policy_dict
 
     def is_valid(self):
         try:
-            return not self.__validator.search(self.__schedule) is None or CronValidator.parse(self.__schedule) is not None
+            return not self.__validator.search(self.__schedule) is None
         except ValueError:
             return False
     
@@ -68,7 +104,7 @@ class ScheduleString:
         if self.__schedule == "hourly":
             return ScheduleString.__hourly
         else:
-            return self.__schedule
+            return self.__policies[self.__schedule]
         
     def __repr__(self):
         return self.get_crontab_schedule()
@@ -118,11 +154,9 @@ class GroupSchedules:
         if group in self.__index.keys():
             self.__log.warning(f"Attempted to add duplicate schedule for group [{group}]")
             return
-       
-        ss = ScheduleString(schedule)
 
-        if ss.is_valid():
-            self.__index[group] = ss.get_crontab_schedule()
+        if schedule.is_valid():
+            self.__index[group] = schedule.get_crontab_schedule()
         else:
             self.__log.warn(f"Skipping invalid schedule [{schedule}] for group [{group}]")
     
@@ -137,7 +171,7 @@ class GroupSchedules:
         return len(self.__index.keys()) == 0
 
 
-def load_group_schedules():
+def load_group_schedules(policies):
     sched = GroupSchedules()
 
     group_keys = [x for x in os.environ.keys() if x.startswith("GROUP_")]
@@ -148,7 +182,11 @@ def load_group_schedules():
         lookup = k[len("GROUP_"):]
         schedkey = f"SCHEDULE_{lookup}"
         if schedkey in schedule_keys:
-            sched.add_schedule(os.environ[k], os.environ[schedkey])
+            ss = ScheduleString(os.environ[schedkey], policies)
+            if ss.is_valid():
+                sched.add_schedule(os.environ[k], ss)
+            else:
+                __log.error(f"{k} defines an invalid policy [{os.environ[schedkey]}], skipping.")
 
     return sched
 

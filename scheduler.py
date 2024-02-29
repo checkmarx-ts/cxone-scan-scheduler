@@ -15,8 +15,9 @@ try:
     region = utils.load_region()
     assert not region is None
 
+    policies = utils.load_policies()
     default_schedule = utils.load_default_schedule()
-    group_schedules = utils.load_group_schedules()
+    group_schedules = utils.load_group_schedules(policies)
 
     auth_endpoint = AuthRegionEndpoints[region](tenant)
     api_endpoint = ApiRegionEndpoints[region]()
@@ -44,7 +45,7 @@ try:
         elements = schedule_tag_value.split(":")
 
         if len(elements) > 0:
-            ss = utils.ScheduleString(elements.pop(0))
+            ss = utils.ScheduleString(elements.pop(0), policies)
 
             if ss.is_valid():
                 branch = elements.pop(0) if len(elements) > 0 else ''
@@ -55,6 +56,8 @@ try:
 
                 if (await repo_details.is_valid()):
                     return {project_data['id'] : [utils.ProjectSchedule(project_data['id'], ss, branch, engines, await repo_details.repo_url)]}
+            else:
+                __log.error(f"Project {project_data['id']}:{project_data['name']} has invalid schedule tag {schedule_tag_value}, skipping.")
 
         return None
 
@@ -110,15 +113,13 @@ try:
                         ss = group_schedules.get_schedule(group_path)
                     
                         if ss is not None:
-                            ss = utils.ScheduleString(ss)
-                            if ss.is_valid():
-                                project_schedules.append(utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
-                                                                            await repo_cfg.primary_branch, 'all', await repo_cfg.repo_url))
+                            project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
+                                                                        await repo_cfg.primary_branch, 'all', await repo_cfg.repo_url))
 
                     if len(project_schedules) > 0:
                         result[project['id']] = project_schedules
                     elif default_schedule is not None:
-                        ss = utils.ScheduleString(default_schedule)
+                        ss = utils.ScheduleString(default_schedule, policies)
                         if ss.is_valid():
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
                                                                                 await repo_cfg.primary_branch, 'all', await repo_cfg.repo_url)]
