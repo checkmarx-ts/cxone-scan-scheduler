@@ -43,7 +43,7 @@ async def main():
         tag = {"scheduled": args.schedule} if args.schedule is not None else {"scheduled" : None}
 
         try:
-            sem = Semaphore(f"/{args.projectid}", flags=O_CREAT, initial_value=1)
+            sem = Semaphore(f"/{args.projectid}-{args.branch}", flags=O_CREAT, initial_value=1)
             sem.acquire(1)
 
             try:
@@ -69,13 +69,13 @@ async def main():
                     
                     response = await client.execute_scan(scan_spec)
                     if response.ok:
-                        __log.info(f"Scanning project {args.projectid}")
+                        __log.info(f"Scanning project {args.projectid} branch {args.branch}")
                     else:
-                        __log.error(f"Failed to start scan for project {args.projectid}: {response.status_code}:{response.reason}")
+                        __log.error(f"Failed to start scan for project {args.projectid} branch {args.branch}: {response.status_code}:{response.reason}")
 
 
                 else:
-                    __log.warn(f"Scheduled project for {args.projectid} is already running, skipping.")
+                    __log.warn(f"Scheduled project for {args.projectid} branch {args.branch} is already running, skipping.")
 
             except Exception:
                 pass
@@ -86,7 +86,7 @@ async def main():
         
 
         except BusyError:
-            __log.debug(f"Another process is handling scans for projectid {args.projectid}, skipping.")
+            __log.debug(f"Another process is handling scans for projectid {args.projectid} branch {args.branch}, skipping.")
         finally:
             sem.close()
 

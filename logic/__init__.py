@@ -124,8 +124,9 @@ class Scheduler:
         for k in intersection:
             grouped.pop(k, None)
         
-        theschedule = tagged | grouped
-        print(theschedule)
+        ret_sched.__schedule = tagged | grouped
+
+        utils.write_schedule(ret_sched.__schedule)
 
         return ret_sched
 

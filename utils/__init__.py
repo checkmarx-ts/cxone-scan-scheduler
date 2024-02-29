@@ -3,6 +3,7 @@ import logging
 import os, re, logging
 from pathlib import Path
 from cron_validator import CronValidator
+from pathlib import Path
 
 __log = logging.getLogger("utils")
 
@@ -84,6 +85,27 @@ def load_policies():
     
     return policies
 
+
+def write_cron_file(index, cron_schedule, projectid, branch, repo_url, engines, cron_path="/etc/cron.d"):
+    engine_args = " ".join([f"-e {x}" for x in engines])
+    filename = Path(cron_path) / f"{projectid}-{branch}_{index:04}.schedule"
+    cron_string = f"{cron_schedule} nobody /opt/cxone/scanner.py -p '{projectid}' -b '{branch}' -r '{repo_url}' -s '{cron_schedule}' {engine_args}\n"
+
+    with open(filename, "w") as cronfile:
+        cronfile.write(cron_string)
+
+
+def write_schedule(schedule):
+
+    for scheds in schedule.values():
+        index = 0
+        for sched in scheds:
+            print (sched)
+            index = index + 1
+    pass
+
+def delete_scheduled_projects(project_branch_tuples, cron_path="/etc/cron.d"):
+    pass
 
 
 class ScheduleString:
