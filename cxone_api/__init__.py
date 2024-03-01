@@ -182,7 +182,7 @@ class CxOneClient:
         with open(Path(__file__).parent / "version.txt", "rt") as version:
             self.__version = version.readline().rstrip()
 
-        self.__agent = f"{agent_name} {agent_version} ({CxOneClient.__AGENT_NAME} {self.__version})"
+        self.__agent = f"{agent_name}/{agent_version}/({CxOneClient.__AGENT_NAME}/{self.__version})"
         self.__proxy = proxy
         self.__ssl_verify = ssl_verify
 

@@ -1,5 +1,5 @@
-#!/bin/python
-import logging, utils, asyncio
+#!/usr/local/bin/python
+import logging, utils, asyncio, os
 from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig
 from logic import Scheduler
 
@@ -37,19 +37,28 @@ try:
 
     __log.debug("Configuration loaded")
 
+    async def log_fifo():
+        if os.path.exists("/opt/cxone/logfifo"):
+            __log.debug("Running background fifo reader")
+            while True:
+                with open("/opt/cxone/logfifo", "rt", buffering=1) as log:
+                    for line in log:
+                        if len(line) > 0:
+                            print(line)
+
 
     async def main():
 
         the_scheduler = await Scheduler.start(client, default_schedule, group_schedules, policies)
 
+        # This task will never end
+        logtask = asyncio.create_task(log_fifo())
+
+        __log.info("Scheduler loop started")
         while True:
             await asyncio.sleep(update_delay)
             __log.info("Updating schedule...")
-
-
-        # TODO: Sleep in a loop, adjust schedule
-
-
+            # TODO
 
     asyncio.run(main())
 

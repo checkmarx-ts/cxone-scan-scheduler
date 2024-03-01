@@ -1,5 +1,5 @@
 from . import log_cfg
-import logging
+import logging, hashlib
 import os, re, logging
 from pathlib import Path
 from cron_validator import CronValidator
@@ -86,10 +86,17 @@ def load_policies():
     return policies
 
 
+def make_safe_name(projectid, branch):
+    return f"{projectid}_{hashlib.md5(branch.encode()).hexdigest()}"
+
+def make_schedule_filename(index, projectid, branch):
+    return f"{make_safe_name(projectid, branch)}_{index:04}"
+
 def write_cron_file(index, cron_schedule, projectid, branch, repo_url, engines, cron_path="/etc/cron.d"):
     engine_args = " ".join([f"-e {x}" for x in engines])
-    filename = Path(cron_path) / f"{projectid}-{branch}_{index:04}.schedule"
-    cron_string = f"{cron_schedule} nobody /opt/cxone/scanner.py -p '{projectid}' -b '{branch}' -r '{repo_url}' -s '{cron_schedule}' {engine_args}\n"
+    filename = Path(cron_path) / make_schedule_filename(index, projectid, branch)
+    log_out_string = "> /opt/cxone/logfifo 2>&1"
+    cron_string = f"{cron_schedule} nobody cd /opt/cxone && ./scanner.py -p '{projectid}' -b '{branch}' -r '{repo_url}' -s '{cron_schedule}' {engine_args} {log_out_string}\n"
 
     with open(filename, "w") as cronfile:
         cronfile.write(cron_string)
@@ -100,11 +107,11 @@ def write_schedule(schedule):
     for scheds in schedule.values():
         index = 0
         for sched in scheds:
-            print (sched)
+            write_cron_file(index, sched.schedule, sched.project_id, sched.branch, sched.repo_url, sched.engines)
+            __log.debug(f"Writing schedule: {sched}")
             index = index + 1
-    pass
 
-def delete_scheduled_projects(project_branch_tuples, cron_path="/etc/cron.d"):
+def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
     pass
 
 
@@ -186,7 +193,7 @@ class GroupSchedules:
         if schedule.is_valid():
             self.__index[group] = schedule.get_crontab_schedule()
         else:
-            self.__log.warn(f"Skipping invalid schedule [{schedule}] for group [{group}]")
+            self.__log.warning(f"Skipping invalid schedule [{schedule}] for group [{group}]")
     
     def get_schedule(self, group):
         if group in self.__index.keys():

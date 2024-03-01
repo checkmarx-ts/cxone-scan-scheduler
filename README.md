@@ -201,7 +201,7 @@ Valid region values:
 * Singapore
 
 
-## Best Practices
+## Other Notes
 
 ### Scan Timing
 

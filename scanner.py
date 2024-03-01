@@ -1,6 +1,6 @@
-#!/bin/python
+#!/usr/local/bin/python
 import logging, argparse, utils, asyncio
-from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig
+from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient
 from posix_ipc import Semaphore, BusyError, O_CREAT
 __log = logging.getLogger("scan executor")
 
@@ -31,7 +31,7 @@ async def main():
         ssl_verify = utils.get_ssl_verify()
         proxy = utils.get_proxy_config()
 
-        agent = "CxOne Cron Scanner"
+        agent = "Cron Scan"
         version = None
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()
@@ -43,11 +43,11 @@ async def main():
         tag = {"scheduled": args.schedule} if args.schedule is not None else {"scheduled" : None}
 
         try:
-            sem = Semaphore(f"/{args.projectid}-{args.branch}", flags=O_CREAT, initial_value=1)
+            sem = Semaphore(f"/{utils.make_safe_name(args.projectid, args.branch)}", flags=O_CREAT, initial_value=1)
             sem.acquire(1)
 
             try:
-                __log.debug(f"Semaphore acquired for projectid {args.projectid}")
+                __log.debug(f"Semaphore acquired for {utils.make_safe_name(args.projectid, args.branch)}")
 
                 # Do not submit a scheduled scan if a scheduled scan is already running.
                 scans = (await client.get_scans(tags_keys="scheduled", branch=args.branch, project_id=args.projectid, statuses=['Queued', 'Running'])).json()
@@ -75,7 +75,7 @@ async def main():
 
 
                 else:
-                    __log.warn(f"Scheduled project for {args.projectid} branch {args.branch} is already running, skipping.")
+                    __log.warning(f"Scheduled project for {args.projectid} branch {args.branch} is already running, skipping.")
 
             except Exception:
                 pass

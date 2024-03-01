@@ -82,12 +82,13 @@ class Scheduler:
                 if await repo_cfg.is_valid():
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:
-                        group_path = by_gid[gid]
-                        ss = self.__group_schedules.get_schedule(group_path)
-                    
-                        if ss is not None:
-                            project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
-                                                                        await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url))
+                        if len(by_gid.keys()) > 0:
+                            group_path = by_gid[gid]
+                            ss = self.__group_schedules.get_schedule(group_path)
+                        
+                            if ss is not None:
+                                project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
+                                                                            await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url))
 
                     if len(project_schedules) > 0:
                         result[project['id']] = project_schedules
@@ -97,7 +98,7 @@ class Scheduler:
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
                                                                                 await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url)]
                 else:
-                    Scheduler.__log.warn(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
+                    Scheduler.__log.warning(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
 
             Scheduler.__log.info("End: Load untagged project schedule")
         else:

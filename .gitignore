@@ -3,7 +3,7 @@ run/*
 **/cxone_oauth_client_id
 **/cxone_oauth_client_secret
 **/cxone_tenant
-.vscode
+env
 
 
 # Byte-compiled / optimized / DLL files
