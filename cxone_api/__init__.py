@@ -360,8 +360,3 @@ class ProjectRepoConfig:
     async def repo_url(self):
         url = await self.__get_logical_repo_url()
         return url if len(url) > 0 else None
-
-    async def is_valid(self):
-        return (await self.repo_url) is not None and (await self.primary_branch) is not None
-
-        

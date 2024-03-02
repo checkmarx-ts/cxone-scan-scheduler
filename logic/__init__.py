@@ -43,7 +43,7 @@ class Scheduler:
 
                 engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
 
-                if (await repo_details.is_valid()):
+                if (await repo_details.repo_url) is not None and branch is not None:
                     return {project_data['id'] : [utils.ProjectSchedule(project_data['id'], ss, branch, engines, await repo_details.repo_url)]}
             else:
                 Scheduler.__log.error(f"Project {project_data['id']}:{project_data['name']} has invalid schedule tag {schedule_tag_value}, skipping.")
@@ -57,6 +57,8 @@ class Scheduler:
             entry = await self.__get_schedule_entry_from_tag(tagged_project, tagged_project['tags']['schedule'])
             if entry is not None:
                 schedules.update(entry)
+            else:
+                Scheduler.__log.debug(f"NO SCHEDULE ENTRY: {tagged_project}")
         Scheduler.__log.info("End: Load tagged project schedule")
         return schedules
 
@@ -79,7 +81,7 @@ class Scheduler:
 
                 # Check that repo is defined and primary branch is defined
                 repo_cfg = ProjectRepoConfig(self.__client, project)
-                if await repo_cfg.is_valid():
+                if (await repo_cfg.repo_url) is not None and (await repo_cfg.primary_branch) is not None:
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:
                         if len(by_gid.keys()) > 0:

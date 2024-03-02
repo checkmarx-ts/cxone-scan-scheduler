@@ -31,7 +31,7 @@ async def main():
         ssl_verify = utils.get_ssl_verify()
         proxy = utils.get_proxy_config()
 
-        agent = "Cron Scan"
+        agent = "CxCron"
         version = None
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()

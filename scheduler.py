@@ -30,9 +30,16 @@ try:
 
 
     policies = utils.load_policies()
+    __log.debug(f"Policies: {policies}")
+
     default_schedule = utils.load_default_schedule()
+    __log.debug(f"Default Schedule: {default_schedule}")
+
     group_schedules = utils.load_group_schedules(policies)
+    __log.debug(f"Group Schedules: {group_schedules}")
+
     update_delay = utils.load_schedule_update_delay()
+    __log.debug(f"Update Delay: {update_delay}")
 
 
     __log.debug("Configuration loaded")
@@ -44,7 +51,7 @@ try:
                 with open("/opt/cxone/logfifo", "rt", buffering=1) as log:
                     for line in log:
                         if len(line) > 0:
-                            print(line)
+                            print(line.strip())
 
 
     async def main():
