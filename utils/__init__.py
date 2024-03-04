@@ -132,7 +132,7 @@ def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
 
 class ScheduleString:
 
-    __daily = "0 */23 * * *"
+    __daily = "0 0 * * *"
     __hourly = "0 * * * *"
 
     def __init__(self, schedule, policy_dict):

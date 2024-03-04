@@ -216,13 +216,13 @@ The value assigned to the environment variable is a valid
 
 Policy definition named `mypolicy` that scans at midnight on weekdays.  It can be referenced with the tag `schedule:mypolicy`.
 ```
-POLICY_MYPOLICY=* * * * 1-5
+POLICY_MYPOLICY=0 0 * * 1-5
 ```
 
-Policy definition named `general-audit-policy` that scans at midnight on weekdays.  It can be referenced with
+Policy definition named `general-audit-policy` that scans every 30 minutes on weekdays.  It can be referenced with
 the tag `schedule:general-audit-policy` or `schedule:general_audit_policy`.
 ```
-POLICY_GENERAL_AUDIT_POLICY=* * * * 1-5
+POLICY_GENERAL_AUDIT_POLICY=0,30 * * * 1-5
 ```
 
 ## Execution

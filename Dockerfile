@@ -1,4 +1,6 @@
 FROM python:3.12
+LABEL org.opencontainers.image.source https://github.com/checkmarx-ts/cxone-scan-scheduler
+
 
 RUN apt-get update && apt-get install -y cron && apt-get clean && \
     usermod -s /bin/bash nobody && \
