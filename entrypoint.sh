@@ -5,6 +5,6 @@
 [ -n "$SSL_VERIFY" ] && echo "export SSL_VERIFY=$SSL_VERIFY" >> /etc/environment
 [ -n "$PROXY" ] && echo "export PROXY=$PROXY" >> /etc/environment
 
-service cron start
+service cron start > /dev/null 2>&1
 
 python $@

@@ -1,6 +1,6 @@
 #!/usr/local/bin/python
 import logging, argparse, utils, asyncio
-from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient
+from cxone_api import CxOneClient
 from posix_ipc import Semaphore, BusyError, O_CREAT
 __log = logging.getLogger("scan executor")
 

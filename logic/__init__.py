@@ -25,8 +25,10 @@ class Scheduler:
         return await Scheduler.__recursive_index_build(group_json)
 
 
-    async def __get_schedule_entry_from_tag(self, project_data, schedule_tag_value):
+    async def __get_schedule_entry_from_tag(self, project_data, schedule_tag_value, bad_cb):
         if schedule_tag_value is None or len(schedule_tag_value) == 0:
+            if bad_cb is not None:
+                bad_cb(project_data['id'], "No schedule tag value.")
             return None
         
         repo_details = ProjectRepoConfig(self.__client, project_data)
@@ -40,33 +42,48 @@ class Scheduler:
                 branch = elements.pop(0) if len(elements) > 0 else ''
                 if len(branch) == 0:
                     branch = await repo_details.primary_branch
+                
+                if branch is None:
+                    bad_cb(project_data['id'], "Scan branch can't be determined.")
+                    return None
 
                 engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
+                if engines is None:
+                    bad_cb(project_data['id'], "Scan engines can't be determined.")
+                    return None
 
-                if (await repo_details.repo_url) is not None and branch is not None:
+                repo_url = await repo_details.repo_url
+                if repo_url is None:
+                    bad_cb(project_data['id'], "Repository URL is not set.")
+                    return None
+
+                if repo_url is not None and branch is not None:
                     return {project_data['id'] : [utils.ProjectSchedule(project_data['id'], ss, branch, engines, await repo_details.repo_url)]}
             else:
                 Scheduler.__log.error(f"Project {project_data['id']}:{project_data['name']} has invalid schedule tag {schedule_tag_value}, skipping.")
+                if bad_cb is not None:
+                    bad_cb(project_data['id'], f"Bad schedule tag value.")
 
         return None
 
-    async def __get_tagged_project_schedule(self):
-        Scheduler.__log.info("Begin: Load tagged project schedule")
+    async def __get_tagged_project_schedule(self, bad_cb):
+        Scheduler.__log.debug("Begin: Load tagged project schedule")
         schedules = {}
         async for tagged_project in paged_api(self.__client.get_projects, "projects", tags_keys="schedule"):
-            entry = await self.__get_schedule_entry_from_tag(tagged_project, tagged_project['tags']['schedule'])
+            entry = await self.__get_schedule_entry_from_tag(tagged_project, tagged_project['tags']['schedule'], bad_cb)
             if entry is not None:
                 schedules.update(entry)
             else:
                 Scheduler.__log.debug(f"NO SCHEDULE ENTRY: {tagged_project}")
-        Scheduler.__log.info("End: Load tagged project schedule")
+
+        Scheduler.__log.debug("End: Load tagged project schedule")
         return schedules
 
-    async def __get_untagged_project_schedule(self):
+    async def __get_untagged_project_schedule(self, bad_cb):
         result = {}
 
         if not self.__group_schedules.empty or self.__default_schedule is not None:
-            Scheduler.__log.info("Begin: Load untagged project schedule")
+            Scheduler.__log.debug("Begin: Load untagged project schedule")
 
             by_gid = {}
             if not self.__group_schedules.empty:
@@ -102,9 +119,9 @@ class Scheduler:
                 else:
                     Scheduler.__log.warning(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
 
-            Scheduler.__log.info("End: Load untagged project schedule")
+            Scheduler.__log.debug("End: Load untagged project schedule")
         else:
-            Scheduler.__log.info("No untagged schedules loaded")
+            Scheduler.__log.debug("No untagged schedules loaded")
 
         return result
 
@@ -156,8 +173,8 @@ class Scheduler:
         self.__the_schedule = self.__the_schedule | new_schedules
 
 
-    async def __load_schedule(self):
-        tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(), self.__get_untagged_project_schedule())
+    async def __load_schedule(self, bad_cb = None):
+        tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(bad_cb), self.__get_untagged_project_schedule(bad_cb))
 
         # It is possible that modifications were done to projects while compiling schedules.  If there are intersections,
         # the tagged project takes precedence.
@@ -170,17 +187,26 @@ class Scheduler:
         return tagged | grouped
 
 
-
-
     @staticmethod
-    async def start(client, default_schedule, group_schedules, policies):
-
+    async def __initialize(client, default_schedule, group_schedules, policies):
         ret_sched = Scheduler()
         ret_sched.__client = client
         ret_sched.__default_schedule = default_schedule
         ret_sched.__group_schedules = group_schedules
         ret_sched.__policies = policies
-        ret_sched.__the_schedule = await ret_sched.__load_schedule()
+
+        return ret_sched
+    
+    @staticmethod
+    async def audit(client, default_schedule, group_schedules, policies, bad_callback):
+        schedule = await Scheduler.__initialize(client, default_schedule, group_schedules, policies)
+        return await schedule.__load_schedule(bad_callback)
+
+    @staticmethod
+    async def start(client, default_schedule, group_schedules, policies):
+
+        ret_sched = await Scheduler.__initialize(client, default_schedule, group_schedules, policies)
+        ret_sched.__the_schedule = await ret_sched.__load_schedule(bad_cb)
 
         utils.write_schedule(ret_sched.__the_schedule)
 

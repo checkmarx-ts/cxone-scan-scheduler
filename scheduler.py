@@ -1,9 +1,18 @@
 #!/usr/local/bin/python
-import logging, utils, asyncio, aiofiles, os
+import sys, os, logging
+
+if sys.argv[0].lower().startswith("audit"):
+    pass
+else:
+    __log = logging.getLogger("scheduler daemon")
+
+
+import utils, asyncio, aiofiles
 from cxone_api import CxOneClient, paged_api, CommunicationException
 from logic import Scheduler
 
-__log = logging.getLogger("scheduler daemon")
+
+
 __log.info("Scheduler starting")
 
 try:
@@ -13,14 +22,13 @@ try:
     assert not oauth_id is None
     assert not oauth_secret is None
 
-
     auth_endpoint, api_endpoint = utils.load_endpoints(tenant)
     assert auth_endpoint is not None and api_endpoint is not None
 
     ssl_verify = utils.get_ssl_verify()
     proxy = utils.get_proxy_config()
 
-    agent = "CxOne Scheduler"
+    agent = "CxOneScheduler"
     version = None
     with open("version.txt", "rt") as ver:
         version = ver.readline().strip()
@@ -54,8 +62,7 @@ try:
                             print(line.strip())
 
 
-    async def main():
-
+    async def scheduler():
         the_scheduler = await Scheduler.start(client, default_schedule, group_schedules, policies)
 
         # This task will never end
@@ -75,7 +82,20 @@ try:
             except Exception as gex:
                 __log.exception(gex)
 
-    asyncio.run(main())
+    async def audit():
+        print("'ProjectId','State','Details'")
+
+        def skipped_entry_cb(project_id, reason):
+            print(f"'{project_id}','SKIPPED','{reason}'")
+
+        for entry in (await Scheduler.audit(client, default_schedule, group_schedules, policies, skipped_entry_cb)).values():
+            for sched in entry:
+                print(f"'{sched.project_id}','SCHEDULED','{str(sched).replace("'", "")}'")
+
+    if sys.argv[0].lower().startswith("audit"):
+        asyncio.run(audit())
+    else:
+        asyncio.run(scheduler())
 
 except Exception as ex:
     __log.exception(ex)

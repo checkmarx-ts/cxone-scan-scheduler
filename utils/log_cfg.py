@@ -1,5 +1,4 @@
-import logging.config, os
-
+import logging, logging.config, os
 
 def get_log_level():
     return "INFO" if os.getenv('LOG_LEVEL') is None else os.getenv('LOG_LEVEL')
@@ -12,6 +11,9 @@ default_log_config = {
             "formatter" : "default",
             "level" : get_log_level(),
             "stream" : "ext://sys.stdout"
+        },
+        "null" : {
+            "class" : "logging.NullHandler"
         }
     },
     "formatters" : {
