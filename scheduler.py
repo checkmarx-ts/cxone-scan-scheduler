@@ -1,6 +1,6 @@
 #!/usr/local/bin/python
 import logging, utils, asyncio, aiofiles, os
-from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig
+from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig, CommunicationException, AuthException
 from logic import Scheduler
 
 __log = logging.getLogger("scheduler daemon")
@@ -62,10 +62,18 @@ try:
         logtask = asyncio.create_task(log_fifo())
 
         __log.info("Scheduler loop started")
+        short_delay = False
         while True:
-            await asyncio.sleep(update_delay)
+            await asyncio.sleep(update_delay if not short_delay else 90)
             __log.info("Updating schedule...")
-            update = await the_scheduler.refresh_schedule()
+            try:
+                await the_scheduler.refresh_schedule()
+                short_delay = False
+            except CommunicationException as ex:
+                __log.exception(ex)
+                short_delay = True
+            except Exception as gex:
+                __log.exception(gex)
 
     asyncio.run(main())
 

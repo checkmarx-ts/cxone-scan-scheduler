@@ -52,8 +52,8 @@ def load_region():
     
 
 def load_default_schedule():
-    if 'GLOBAL_DEFAULT_SCHEDULE' in os.environ.keys():
-        return os.environ['GLOBAL_DEFAULT_SCHEDULE']
+    if 'DEFAULT_SCHEDULE' in os.environ.keys():
+        return os.environ['DEFAULT_SCHEDULE']
     else:
         return None
 
@@ -115,7 +115,7 @@ def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
     for k in schedule.keys():
         index = 0
         for sched in schedule[k]:
-            filename = Path(cron_path) / make_schedule_filename(index, sched.projectid, sched.branch)
+            filename = Path(cron_path) / make_schedule_filename(index, sched.project_id, sched.branch)
             __log.debug(f"Removing cron file: {filename}")
             index = index + 1
 
@@ -209,6 +209,9 @@ class GroupSchedules:
     @property
     def empty(self):
         return len(self.__index.keys()) == 0
+    
+    def __repr__(self):
+        return str(self.__index)
 
 
 def load_group_schedules(policies):

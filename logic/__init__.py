@@ -146,6 +146,7 @@ class Scheduler:
         # schedules need to be re-written.
         changed_schedule = await self.__get_changed_projects(new_schedule)
         self.__log.debug(f"Changing {len(changed_schedule)} project schedules")
+        utils.delete_scheduled_projects(changed_schedule)
         utils.write_schedule(changed_schedule)
         for k in changed_schedule.keys():
             self.__the_schedule.pop(k, None)
