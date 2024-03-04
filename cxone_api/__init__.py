@@ -230,7 +230,7 @@ class CxOneClient:
     async def __auth_task(self):
         response = None
         for _ in range(0, self.__retries):
-            response = requests.post(self.auth_endpoint, data=self.__auth_content, timeout=self.__timeout, 
+            response = await asyncio.to_thread(requests.post, self.auth_endpoint, data=self.__auth_content, timeout=self.__timeout, 
               proxies=self.__proxy, verify=self.__ssl_verify, headers={
                   "Content-Type" : "application/x-www-form-urlencoded",
                   "Accept" : "application/json"
@@ -245,7 +245,8 @@ class CxOneClient:
 
         if self.__auth_lock.locked():
             skip = True
-            await self.__auth_lock
+            async with self.__auth_lock:
+                pass
 
         if not skip:
             async with self.__auth_lock:
@@ -258,7 +259,7 @@ class CxOneClient:
         kwargs['verify'] = self.__ssl_verify
 
         for _ in range(0, self.__retries):
-            response = op(*args, **kwargs)
+            response = await asyncio.to_thread(op, *args, **kwargs)
 
             if response.status_code == 401:
                 await self.__do_auth()
