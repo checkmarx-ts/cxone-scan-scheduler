@@ -12,7 +12,7 @@ class CommunicationException(BaseException):
 
 
 
-class TenantAuthEndpoint:
+class CxOneAuthEndpoint:
 
     __AUTH_PREFIX = "/auth/realms"
     __AUTH_SUFFIX = "protocol/openid-connect/token"
@@ -20,8 +20,8 @@ class TenantAuthEndpoint:
     __ADMIN_PREFIX = "/auth/admin/realms"
 
     def __init__(self, tenant_name, server, scheme=DEFAULT_SCHEME):
-        self.__endpoint_url = urllib.parse.urlunsplit((scheme, server, f"{TenantAuthEndpoint.__AUTH_PREFIX}/{tenant_name}/{TenantAuthEndpoint.__AUTH_SUFFIX}", None, None))
-        self.__admin_endpoint_url = urllib.parse.urlunsplit((scheme, server, f"{TenantAuthEndpoint.__ADMIN_PREFIX}/{tenant_name}/", None, None))
+        self.__endpoint_url = urllib.parse.urlunsplit((scheme, server, f"{CxOneAuthEndpoint.__AUTH_PREFIX}/{tenant_name}/{CxOneAuthEndpoint.__AUTH_SUFFIX}", None, None))
+        self.__admin_endpoint_url = urllib.parse.urlunsplit((scheme, server, f"{CxOneAuthEndpoint.__ADMIN_PREFIX}/{tenant_name}/", None, None))
 
     @property
     def admin_endpoint(self):
@@ -31,27 +31,27 @@ class TenantAuthEndpoint:
         return str(self.__endpoint_url)
 
 
-class AuthUS(TenantAuthEndpoint):
+class AuthUS(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "iam.checkmarx.net")
 
-class AuthUS2(TenantAuthEndpoint):
+class AuthUS2(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "us.iam.checkmarx.net")
 
-class AuthEU(TenantAuthEndpoint):
+class AuthEU(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "eu.iam.checkmarx.net")
 
-class AuthANZ(TenantAuthEndpoint):
+class AuthANZ(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "anz.iam.checkmarx.net")
 
-class AuthIndia(TenantAuthEndpoint):
+class AuthIndia(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "ind.iam.checkmarx.net")
 
-class AuthSingapore(TenantAuthEndpoint):
+class AuthSingapore(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "sng.iam.checkmarx.net")
 
@@ -67,38 +67,38 @@ AuthRegionEndpoints = {
 }
 
 
-class ApiEndpoint:
+class CxOneApiEndpoint:
     def __init__(self, server, scheme=DEFAULT_SCHEME):
         self.__endpoint_url = urllib.parse.urlunsplit((scheme, server, "/api/", None, None))
 
     def __str__(self):
         return str(self.__endpoint_url)
 
-class ApiUS(ApiEndpoint):
+class ApiUS(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("ast.checkmarx.net")
 
-class ApiUS2(ApiEndpoint):
+class ApiUS2(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("us.ast.checkmarx.net")
 
-class ApiEU(ApiEndpoint):
+class ApiEU(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("eu.ast.checkmarx.net")
 
-class ApiEU2(ApiEndpoint):
+class ApiEU2(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("eu-2ast.checkmarx.net")
 
-class ApiANZ(ApiEndpoint):
+class ApiANZ(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("anz.ast.checkmarx.net")
 
-class ApiIndia(ApiEndpoint):
+class ApiIndia(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("ind.ast.checkmarx.net")
 
-class ApiSingapore(ApiEndpoint):
+class ApiSingapore(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("sng.ast.checkmarx.net")
 

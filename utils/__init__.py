@@ -4,6 +4,7 @@ import os, re, logging
 from pathlib import Path
 from cron_validator import CronValidator
 from pathlib import Path
+from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint, CxOneApiEndpoint
 
 __log = logging.getLogger("utils")
 
@@ -18,7 +19,6 @@ def get_secret_path():
         return f"./{tree}"
     else:
         return "."
-
 
 def load_secrets():
     path = get_secret_path()
@@ -46,10 +46,20 @@ def load_schedule_update_delay():
 
 def load_region():
     if not 'CXONE_REGION' in os.environ.keys():
-        return "US"
+        return None
     else:
         return os.environ['CXONE_REGION']
-    
+
+
+def load_endpoints(tenant_name):
+    region = load_region()
+    if region is not None:
+        return AuthRegionEndpoints[region](tenant_name), ApiRegionEndpoints[region]()
+    elif 'SINGLE_TENANT_AUTH' in os.environ.keys() and 'SINGLE_TENANT_API' in os.environ.keys():
+        return CxOneAuthEndpoint(tenant_name, os.environ['SINGLE_TENANT_AUTH']), CxOneApiEndpoint(os.environ['SINGLE_TENANT_API']) 
+    else:
+        return None, None
+
 
 def load_default_schedule():
     if 'DEFAULT_SCHEDULE' in os.environ.keys():

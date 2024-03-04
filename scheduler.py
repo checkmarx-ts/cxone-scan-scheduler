@@ -1,6 +1,6 @@
 #!/usr/local/bin/python
 import logging, utils, asyncio, aiofiles, os
-from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig, CommunicationException, AuthException
+from cxone_api import CxOneClient, paged_api, CommunicationException
 from logic import Scheduler
 
 __log = logging.getLogger("scheduler daemon")
@@ -13,10 +13,10 @@ try:
     assert not oauth_id is None
     assert not oauth_secret is None
 
-    region = utils.load_region()
-    assert not region is None
-    auth_endpoint = AuthRegionEndpoints[region](tenant)
-    api_endpoint = ApiRegionEndpoints[region]()
+
+    auth_endpoint, api_endpoint = utils.load_endpoints(tenant)
+    assert auth_endpoint is not None and api_endpoint is not None
+
     ssl_verify = utils.get_ssl_verify()
     proxy = utils.get_proxy_config()
 
