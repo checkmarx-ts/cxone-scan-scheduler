@@ -108,6 +108,68 @@ class Scheduler:
 
         return result
 
+    async def __get_changed_projects(self, new_schedule):
+        check_projects = set(new_schedule.keys()) & set(self.__the_schedule.keys())
+
+        result = {}
+        for k in check_projects:
+            if not len(new_schedule[k]) == len(self.__the_schedule[k]):
+                result[k] = new_schedule[k]
+            else:
+                new_schedule_comps = set([str(x) for x in new_schedule[k]])
+                old_schedule_comps = set([str(x) for x in self.__the_schedule[k]])
+                if len(new_schedule_comps - old_schedule_comps) > 0:
+                    result[k] = new_schedule[k]
+
+        return result
+
+    async def refresh_schedule(self):
+        new_schedule = await self.__load_schedule()
+
+        # Schedules that are in new_schedule but not in the current schedule are new
+        # and can be written immediately.
+        new_scheduled_projects = set(new_schedule.keys()) - set(self.__the_schedule.keys())
+        new_schedules = {k:new_schedule[k] for k in new_scheduled_projects}
+        self.__log.debug(f"Writing {len(new_scheduled_projects)} new project schedules")
+        utils.write_schedule(new_schedules)
+        
+        # Schedules that are in the current schedule but not in the new schedule can
+        # be removed.
+        removed_projects = set(self.__the_schedule.keys()) - set(new_schedule.keys())
+        removed_schedules = {k:self.__the_schedule[k] for k in removed_projects}
+        self.__log.debug(f"Deleting {len(removed_projects)} project schedules")
+        utils.delete_scheduled_projects(removed_schedules)
+        for removed in removed_projects:
+            self.__the_schedule.pop(removed, None)
+
+        # Schedules that still exist should be checked for changes.  Any changed
+        # schedules need to be re-written.
+        changed_schedule = await self.__get_changed_projects(new_schedule)
+        self.__log.debug(f"Changing {len(changed_schedule)} project schedules")
+        utils.write_schedule(changed_schedule)
+        for k in changed_schedule.keys():
+            self.__the_schedule.pop(k, None)
+            self.__the_schedule[k] = changed_schedule[k]
+
+
+        self.__the_schedule = self.__the_schedule | new_schedules
+
+
+    async def __load_schedule(self):
+        tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(), self.__get_untagged_project_schedule())
+
+        # It is possible that modifications were done to projects while compiling schedules.  If there are intersections,
+        # the tagged project takes precedence.
+        intersection = list(set(tagged.keys()) & set(grouped.keys()) )
+
+        for k in intersection:
+            grouped.pop(k, None)
+
+
+        return tagged | grouped
+
+
+
 
     @staticmethod
     async def start(client, default_schedule, group_schedules, policies):
@@ -117,19 +179,9 @@ class Scheduler:
         ret_sched.__default_schedule = default_schedule
         ret_sched.__group_schedules = group_schedules
         ret_sched.__policies = policies
+        ret_sched.__the_schedule = await ret_sched.__load_schedule()
 
-        tagged, grouped = await asyncio.gather(ret_sched.__get_tagged_project_schedule(), ret_sched.__get_untagged_project_schedule())
-
-        # It is possible that modifications were done to projects while compiling schedules.  If there are intersections,
-        # the tagged project takes precedence.
-        intersection = list(set(tagged.keys()) & set(grouped.keys()) )
-
-        for k in intersection:
-            grouped.pop(k, None)
-        
-        ret_sched.__schedule = tagged | grouped
-
-        utils.write_schedule(ret_sched.__schedule)
+        utils.write_schedule(ret_sched.__the_schedule)
 
         return ret_sched
 

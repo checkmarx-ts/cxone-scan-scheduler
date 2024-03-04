@@ -1,5 +1,5 @@
 #!/usr/local/bin/python
-import logging, utils, asyncio, os
+import logging, utils, asyncio, aiofiles, os
 from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneClient, paged_api, ProjectRepoConfig
 from logic import Scheduler
 
@@ -48,8 +48,8 @@ try:
         if os.path.exists("/opt/cxone/logfifo"):
             __log.debug("Running background fifo reader")
             while True:
-                with open("/opt/cxone/logfifo", "rt", buffering=1) as log:
-                    for line in log:
+                async with aiofiles.open("/opt/cxone/logfifo", "rt", buffering=1) as log:
+                    async for line in log:
                         if len(line) > 0:
                             print(line.strip())
 
@@ -65,7 +65,7 @@ try:
         while True:
             await asyncio.sleep(update_delay)
             __log.info("Updating schedule...")
-            # TODO
+            update = await the_scheduler.refresh_schedule()
 
     asyncio.run(main())
 

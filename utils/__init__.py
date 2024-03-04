@@ -38,14 +38,14 @@ def load_secrets():
     return (tenant, oauth_id, oauth_secret)
 
 def load_schedule_update_delay():
-    if not 'UPDATE_DELAY_SECONDS' in os.environ.keys() is None:
+    if not 'UPDATE_DELAY_SECONDS' in os.environ.keys():
         return 43200
     else:
         return int(os.environ['UPDATE_DELAY_SECONDS'])
 
 
 def load_region():
-    if not 'CXONE_REGION' in os.environ.keys() is None:
+    if not 'CXONE_REGION' in os.environ.keys():
         return "US"
     else:
         return os.environ['CXONE_REGION']
@@ -112,7 +112,12 @@ def write_schedule(schedule):
             index = index + 1
 
 def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
-    pass
+    for k in schedule.keys():
+        index = 0
+        for sched in schedule[k]:
+            filename = Path(cron_path) / make_schedule_filename(index, sched.projectid, sched.branch)
+            __log.debug(f"Removing cron file: {filename}")
+            index = index + 1
 
 
 class ScheduleString:
