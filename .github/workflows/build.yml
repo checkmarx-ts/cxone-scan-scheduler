@@ -55,9 +55,10 @@ jobs:
     steps:
       - name: Make release text
         run: |
-          echo "# ${{ inputs.tag }}" > release.md
+          echo "# CxOne Scan Scheduler ${{ inputs.tag }}" > release.md
+          echo Executable artifacts are published in a container. >> release.md
           echo '```' >> release.md
-          echo "docker pull $DOCKER_REPO:latest" >> release.md
+          [ ${{ inputs.prerelease }} = false ] && echo "docker pull $DOCKER_REPO:latest" >> release.md || :
           echo "docker pull $DOCKER_REPO:${{ inputs.tag }}" >> release.md
           echo '```' >> release.md
       - name: Create GitHub Release
