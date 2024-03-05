@@ -1,0 +1,22 @@
+{
+	"version": 1,
+	"handlers": {
+		"console": {
+			"class": "logging.StreamHandler",
+			"formatter": "default",
+			"stream": "ext://sys.stdout"
+		}
+	},
+	"formatters": {
+		"default": {
+			"format": "[%(asctime)s][%(process)d][%(name)s][%(levelname)s] %(message)s",
+			"datefmt": "%Y-%m-%dT%H:%M:%S%z"
+		}
+	},
+	"loggers": {
+		"root": {
+			"handlers": ["console"],
+			"level": "INFO"
+		}
+	}
+}
