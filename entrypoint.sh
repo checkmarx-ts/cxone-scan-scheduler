@@ -7,6 +7,10 @@
 [ -n "$SSL_VERIFY" ] && echo "export SSL_VERIFY=$SSL_VERIFY" >> /etc/environment
 [ -n "$PROXY" ] && echo "export PROXY=$PROXY" >> /etc/environment
 
+if [ -n "$TIMEZONE" ]; then
+    [ -f /usr/share/zoneinfo/$TIMEZONE ] && ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+fi
+
 service cron start > /dev/null 2>&1
 
 python $@
