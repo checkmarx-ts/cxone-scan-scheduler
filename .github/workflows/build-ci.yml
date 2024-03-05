@@ -14,6 +14,6 @@ jobs:
                 install: true
                 platforms: linux/amd64
             - name: Execute Docker Build
-                run: docker build .
+              run: docker build .
     
       
