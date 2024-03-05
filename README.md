@@ -227,22 +227,94 @@ POLICY_GENERAL_AUDIT_POLICY=0,30 * * * 1-5
 
 ## Execution
 
-TODO: ghcr.io tag
-TODO: Comments on integrating it with an enterprise service.
 
-TODO: Running it locally for testing purposes.
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 scheduler.py
+### Obtaining the Container Image
+
+The container image tag is `ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest`.  You can reference this image tag
+when running the image.  If running Docker locally, for example, you can retrieve the image with this command:
+
+```
+docker pull ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
+```
+
+### Executing the Container Image
+
+Execution methods may vary, but you must consider the following for execution:
+
+1. How to define configuration environment variables.
+2. How to map secrets to `/run/secrets`
+
+If running locally with Docker, for example, this command would run the scheduler setting the configuration environment variables 
+and map `$(pwd)/run/secrets` to `/run/secrets`:
 
 
-TODO: Developer debugging
+```
+docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
+```
 
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 scheduler.py
+#### Execution Options
+
+By default, executing the container will start the scheduler.  The scheduler will run until the container is stopped.
+
+There are two other runtimes that can be specified: `audit` and
+`scanner`.
+
+##### Executing `scanner`
+
+The `scanner` is the tool used by `Cron` to execute scans.  It has some self-explanatory command line arguments that can be retrieved with the `-h` option.
+Executing the `scanner` to see the help, for example, could be done using the following command line if running Docker locally:
+
+```
+docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest scanner -h
+```
+
+Which would yield an output similar to the following:
+
+```
+A program to execute scans in CheckmarxOne as a Scheduler cron job.
+
+options:
+  -h, --help            show this help message and exit
+  --projectid PROJECTID, -p PROJECTID
+                        The CxOne project id found in the tenant.
+  --engine ENGINES, -e ENGINES
+                        The engines to use for the scan.
+  --repo REPO, -r REPO  The code repository URL.
+  --branch BRANCH, -b BRANCH
+                        The code repository URL.
+  --schedule SCHEDULE, -s SCHEDULE
+                        The schedule used to invoke the scan.
+```
+
+##### Executing `audit`
+
+The `audit` execution will dump a CSV stream showing how the scheduler
+would create the schedule for all projects.
+
+If running Docker locally, the following command line could be used
+to dump a CSV to a local file:
+
+```
+docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest audit > out.csv
+```
 
 
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 scheduler
+#### Python Debugger Execution
 
-TODO: Evaluate schedule
+If you are a developer that wants to modify the code, you can execute
+the container so that you can attach a remote debugger instance.  The
+following command line is an example of how to execute the scheduler
+so that it waits for a remote debugger to attach before starting:
 
+```
+docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
+```
+
+The same can be done for the `scanner`:
+
+```
+docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scanner.py
+```
 
 ## Other Notes
 
