@@ -82,14 +82,14 @@ try:
                 __log.exception(gex)
 
     async def audit():
-        print("'ProjectId','State','Details'")
+        print('"ProjectId","State","Details"')
 
         def skipped_entry_cb(project_id, reason):
-            print(f"'{project_id}','SKIPPED','{reason}'")
+            print(f'"{project_id}","SKIPPED","{reason}"')
 
         for entry in (await Scheduler.audit(client, default_schedule, group_schedules, policies, skipped_entry_cb)).values():
             for sched in entry:
-                print(f"'{sched.project_id}','SCHEDULED','{str(sched).replace("'", "")}'")
+                print(f'"{sched.project_id}","SCHEDULED","{str(sched).replace("'", "")}"')
 
     if sys.argv[0].lower().startswith("audit"):
         asyncio.run(audit())
