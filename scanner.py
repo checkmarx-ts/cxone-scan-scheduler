@@ -2,6 +2,8 @@
 import logging, argparse, utils, asyncio
 from cxone_api import CxOneClient
 from posix_ipc import Semaphore, BusyError, O_CREAT
+
+utils.configure_normal_logging()
 __log = logging.getLogger("scan executor")
 
 

@@ -19,6 +19,8 @@ COPY logic /opt/cxone/logic
 COPY utils /opt/cxone/utils
 COPY *.py /opt/cxone
 COPY entrypoint.sh /opt/cxone
+COPY *.json /opt/cxone
+
 
 RUN ln -s scanner.py scanner && \
     ln -s scheduler.py scheduler && \

@@ -1,6 +1,5 @@
-from . import log_cfg
 import logging, hashlib
-import os, re, logging
+import os, re, logging, json
 from pathlib import Path
 from cron_validator import CronValidator
 from pathlib import Path
@@ -8,6 +7,21 @@ from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint
 
 __log = logging.getLogger("utils")
 
+def get_log_level():
+    return "INFO" if os.getenv('LOG_LEVEL') is None else os.getenv('LOG_LEVEL')
+
+
+def load_logging_config_dict(filename):
+    with open(filename, "rt") as cfg:
+        config = json.load(cfg) 
+        config['loggers']['root']['level'] = get_log_level()
+        return config
+
+def configure_normal_logging():
+    logging.config.dictConfig(load_logging_config_dict("normal.json"))
+
+def configure_audit_logging():
+    logging.config.dictConfig(load_logging_config_dict("audit.json"))
 
 def get_secret_path():
     tree = "run/secrets"
