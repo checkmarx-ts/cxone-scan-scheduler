@@ -44,17 +44,20 @@ class Scheduler:
                     branch = await repo_details.primary_branch
                 
                 if branch is None:
-                    bad_cb(project_data['id'], "Scan branch can't be determined.")
+                    if bad_cb is not None:
+                        bad_cb(project_data['id'], "Scan branch can't be determined.")
                     return None
 
                 engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
                 if engines is None:
-                    bad_cb(project_data['id'], "Scan engines can't be determined.")
+                    if bad_cb is not None:
+                        bad_cb(project_data['id'], "Scan engines can't be determined.")
                     return None
 
                 repo_url = await repo_details.repo_url
                 if repo_url is None:
-                    bad_cb(project_data['id'], "Repository URL is not set.")
+                    if bad_cb is not None:
+                        bad_cb(project_data['id'], "Repository URL is not set.")
                     return None
 
                 if repo_url is not None and branch is not None:
@@ -206,7 +209,7 @@ class Scheduler:
     async def start(client, default_schedule, group_schedules, policies):
 
         ret_sched = await Scheduler.__initialize(client, default_schedule, group_schedules, policies)
-        ret_sched.__the_schedule = await ret_sched.__load_schedule(bad_cb)
+        ret_sched.__the_schedule = await ret_sched.__load_schedule(None)
 
         utils.write_schedule(ret_sched.__the_schedule)
 

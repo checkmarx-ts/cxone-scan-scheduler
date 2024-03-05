@@ -1,10 +1,8 @@
 {
 	"version": 1,
 	"handlers": {
-		"console": {
-			"class": "logging.StreamHandler",
-			"formatter": "default",
-			"stream": "ext://sys.stderr"
+		"null": {
+			"class": "logging.NullHandler"
 		}
 	},
 	"formatters": {
@@ -15,7 +13,7 @@
 	},
 	"loggers": {
 		"root": {
-			"handlers": ["console"],
+			"handlers": ["null"],
 			"level": "INFO"
 		}
 	}

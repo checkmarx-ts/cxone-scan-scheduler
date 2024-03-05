@@ -1,4 +1,4 @@
-import logging, hashlib
+import logging, hashlib, logging.config
 import os, re, logging, json
 from pathlib import Path
 from cron_validator import CronValidator

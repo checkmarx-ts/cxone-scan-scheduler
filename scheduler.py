@@ -1,13 +1,15 @@
 #!/usr/local/bin/python
-import sys, os, logging
-import utils, asyncio, aiofiles
-from cxone_api import CxOneClient, paged_api, CommunicationException
-from logic import Scheduler
+import sys, os, logging, utils
 
 if sys.argv[0].lower().startswith("audit"):
     utils.configure_audit_logging()
 else:
     utils.configure_normal_logging()
+
+import asyncio, aiofiles
+from cxone_api import CxOneClient, paged_api, CommunicationException
+from logic import Scheduler
+
 
 __log = logging.getLogger("scheduler daemon")
 __log.info("Scheduler starting")

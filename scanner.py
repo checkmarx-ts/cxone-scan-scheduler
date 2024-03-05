@@ -13,7 +13,7 @@ parser.add_argument('--projectid', '-p', action='store', type=str, required=True
 parser.add_argument('--engine', '-e', action='append', type=str, required=True, dest="engines", help="The engines to use for the scan.")
 parser.add_argument('--repo', '-r', action='store', type=str, required=True, dest="repo", help="The code repository URL.")
 parser.add_argument('--branch', '-b', action='store', type=str, required=True, dest="branch", help="The code repository URL.")
-parser.add_argument('--schedule', '-s', action='store', type=str, required=False, dest="schedule", help="The schedule used to invoke the scan.")
+parser.add_argument('--schedule', '-s', action='store', type=str, required=False, default='unknown', dest="schedule", help="The schedule used to invoke the scan.")
 
 
 
