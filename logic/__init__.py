@@ -175,6 +175,8 @@ class Scheduler:
 
         self.__the_schedule = self.__the_schedule | new_schedules
 
+        return len(new_scheduled_projects), len(removed_projects), len(changed_schedule.keys())
+
 
     async def __load_schedule(self, bad_cb = None):
         tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(bad_cb), self.__get_untagged_project_schedule(bad_cb))

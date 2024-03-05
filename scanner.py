@@ -77,7 +77,7 @@ async def main():
 
 
                 else:
-                    __log.warning(f"Scheduled project for {args.projectid} branch {args.branch} is already running, skipping.")
+                    __log.warning(f"Scheduled scan for project {args.projectid} branch {args.branch} is already running, skipping.")
 
             except Exception:
                 pass

@@ -76,8 +76,9 @@ while True:
                 await asyncio.sleep(update_delay if not short_delay else 90)
                 __log.info("Updating schedule...")
                 try:
-                    await the_scheduler.refresh_schedule()
+                    new, removed, changed = await the_scheduler.refresh_schedule()
                     short_delay = False
+                    __log.info(f"Schedule changes: New: {new} Removed: {removed} Changed: {changed}")
                 except CommunicationException as ex:
                     __log.exception(ex)
                     short_delay = True
