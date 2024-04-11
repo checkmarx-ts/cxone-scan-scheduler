@@ -35,7 +35,7 @@ while True:
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()
 
-        client = CxOneClient(oauth_id, oauth_secret, agent, version, auth_endpoint, 
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, agent, version, auth_endpoint, 
                             api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
 
 
@@ -73,6 +73,7 @@ while True:
             __log.info("Scheduler loop started")
             short_delay = False
             while True:
+                __log.info(f"Projects with scheduled scans: {the_scheduler.scheduled_scans}")
                 await asyncio.sleep(update_delay if not short_delay else 90)
                 __log.info("Updating schedule...")
                 try:

@@ -28,6 +28,5 @@ COPY *.json /opt/cxone
 RUN ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
 
-# ENTRYPOINT ["python", "-Xfrozen_modules=off", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client"]
 CMD ["scheduler"]
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]
