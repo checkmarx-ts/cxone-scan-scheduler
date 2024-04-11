@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python3
 import sys, os, logging, utils
 
 if sys.argv[0].lower().startswith("audit"):
@@ -94,7 +94,8 @@ while True:
 
             for entry in (await Scheduler.audit(client, default_schedule, group_schedules, policies, skipped_entry_cb)).values():
                 for sched in entry:
-                    print(f'"{sched.project_id}","SCHEDULED","{str(sched).replace("'", "")}"')
+                    clean_sched = str(sched).replace("'", "")
+                    print(f'"{sched.project_id}","SCHEDULED","{clean_sched}"')
 
         if is_audit:
             asyncio.run(audit())

@@ -1,11 +1,13 @@
-FROM python:3.12
+FROM ubuntu:24.04
 LABEL org.opencontainers.image.source https://github.com/checkmarx-ts/cxone-scan-scheduler
 LABEL org.opencontainers.image.vendor Checkmarx Professional Services
 LABEL org.opencontainers.image.title Checkmarx One Scan Scheduler
 LABEL org.opencontainers.image.description Schedules scans for projects in Checkmarx One
 
 
-RUN apt-get update && apt-get install -y cron && apt-get clean && \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata && \
+    apt-get install -y cron python3.12 python3-pip python3-debugpy bash && \
     usermod -s /bin/bash nobody && \
     mkdir -p /opt/cxone && \
     mkfifo /opt/cxone/logfifo && \
@@ -14,8 +16,12 @@ RUN apt-get update && apt-get install -y cron && apt-get clean && \
 
 WORKDIR /opt/cxone
 COPY *.txt /opt/cxone
-RUN pip install debugpy && pip install -r requirements.txt
 
+RUN pip install -r requirements.txt --break-system-packages && \
+    apt-get remove -y perl && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    dpkg --purge $(dpkg --get-selections | grep deinstall | cut -f1)
 
 COPY cxone_api /opt/cxone/cxone_api
 COPY logic /opt/cxone/logic

@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python3
 import logging, argparse, utils, asyncio
 from cxone_api import CxOneClient
 from posix_ipc import Semaphore, BusyError, O_CREAT

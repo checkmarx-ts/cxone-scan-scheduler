@@ -13,4 +13,4 @@ fi
 
 service cron start > /dev/null 2>&1
 
-python $@
+python3 $@
