@@ -4,6 +4,7 @@ LABEL org.opencontainers.image.vendor Checkmarx Professional Services
 LABEL org.opencontainers.image.title Checkmarx One Scan Scheduler
 LABEL org.opencontainers.image.description Schedules scans for projects in Checkmarx One
 
+USER root
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata && \
@@ -17,7 +18,7 @@ RUN apt-get update && \
 WORKDIR /opt/cxone
 COPY *.txt /opt/cxone
 
-RUN pip install -r requirements.txt --break-system-packages && \
+RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     apt-get remove -y perl && \
     apt-get autoremove -y && \
     apt-get clean && \
