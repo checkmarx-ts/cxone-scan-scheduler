@@ -1,4 +1,4 @@
-import asyncio, uuid, requests, urllib, datetime
+import asyncio, uuid, requests, urllib, datetime, re
 from requests.compat import urljoin
 from pathlib import Path
 
@@ -8,8 +8,25 @@ class AuthException(BaseException):
     pass
     
 class CommunicationException(BaseException):
-    pass
 
+    @staticmethod
+    def __clean(content):
+        if type(content) is list:
+            return [CommunicationException.__clean(x) for x in content]
+        elif type(content) is tuple:
+            return (CommunicationException.__clean(x) for x in content)
+        elif type(content) is dict:
+            return {k:CommunicationException.__clean(v) for k,v in content.items()}
+        elif type(content) is str:
+            if re.match("^Bearer.*", content):
+                return "REDACTED"
+            else:
+                return content
+        else:
+            return content
+
+    def __init__(self, op, *args, **kwargs):
+        BaseException.__init__(self, f"Operation: {op.__name__} args: [{CommunicationException.__clean(args)}] kwargs: [{CommunicationException.__clean(kwargs)}]")
 
 
 class CxOneAuthEndpoint:
@@ -172,20 +189,17 @@ async def paged_api(coro, array_element, offset_field='offset', **kwargs):
         yield buf.pop()
 
 
-        
-
 class CxOneClient:
     __AGENT_NAME = 'CxOne PyClient'
 
-    def __init__(self, oauth_id, oauth_secret, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
 
+    def __common__init(self, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify):
         with open(Path(__file__).parent / "version.txt", "rt") as version:
             self.__version = version.readline().rstrip()
 
         self.__agent = f"{agent_name}/{agent_version}/({CxOneClient.__AGENT_NAME}/{self.__version})"
         self.__proxy = proxy
         self.__ssl_verify = ssl_verify
-
         self.__auth_lock = asyncio.Lock()
         self.__corelation_id = str(uuid.uuid4())
 
@@ -193,16 +207,43 @@ class CxOneClient:
         self.__api_endpoint = api_endpoint
         self.__timeout = timeout
         self.__retries = retries
-        
-        
-        self.__auth_content = urllib.parse.urlencode( {
+
+        self.__auth_endpoint = tenant_auth_endpoint
+        self.__api_endpoint = api_endpoint
+        self.__timeout = timeout
+        self.__retries = retries
+
+        self.__auth_result = None
+
+
+
+
+
+    @staticmethod
+    def create_with_oauth(oauth_id, oauth_secret, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
+        inst = CxOneClient()
+        inst.__common__init(agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
+
+        inst.__auth_content = urllib.parse.urlencode( {
             "grant_type" : "client_credentials",
             "client_id" : oauth_id,
             "client_secret" : oauth_secret
         })
-        
-        self.__auth_result = None
 
+        return inst
+
+    @staticmethod
+    def create_with_api_key(api_key, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
+        inst = CxOneClient()
+        inst.__common__init(agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
+
+        inst.__auth_content = urllib.parse.urlencode( {
+            "grant_type" : "refresh_token",
+            "client_id" : "ast-app",
+            "refresh_token" : api_key
+        })
+
+        return inst
 
     @property
     def auth_endpoint(self):
@@ -259,6 +300,14 @@ class CxOneClient:
         kwargs['verify'] = self.__ssl_verify
 
         for _ in range(0, self.__retries):
+            auth_headers = await self.__get_request_headers()
+
+            if 'headers' in kwargs.keys():
+                for h in auth_headers.keys():
+                    kwargs['headers'][h] = auth_headers[h]
+            else:
+                kwargs['headers'] = auth_headers
+            
             response = await asyncio.to_thread(op, *args, **kwargs)
 
             if response.status_code == 401:
@@ -266,7 +315,7 @@ class CxOneClient:
             else:
                 return response
 
-        raise CommunicationException(f"{str(op)}{str(args)}{str(kwargs)}")
+        raise CommunicationException(op, *args, **kwargs)
 
 
     @staticmethod
@@ -288,47 +337,91 @@ class CxOneClient:
 
         return urljoin(url, f"?{'&'.join(query)}" if len(query) > 0 else '')
 
-   
+    @dashargs("tags-keys", "tags-values")
+    async def get_applications(self, **kwargs):
+        url = urljoin(self.api_endpoint, "applications")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
+
+    async def get_application(self, id, **kwargs):
+        url = urljoin(self.api_endpoint, f"applications/{id}")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
+
     @dashargs("repo-url", "name-regex", "tags-keys", "tags-values")
     async def get_projects(self, **kwargs):
         url = urljoin(self.api_endpoint, "projects")
-
         url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
 
-        return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
 
-    async def get_project(self, id):
-        url = urljoin(self.api_endpoint, f"projects/{id}")
-        return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
+    async def get_project(self, projectid):
+        url = urljoin(self.api_endpoint, f"projects/{projectid}")
+        return await self.__exec_request(requests.get, url)
 
-    async def get_project_configuration(self, id):
-        url = urljoin(self.api_endpoint, f"configuration/project?project-id={id}")
-        return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
+    async def get_project_configuration(self, projectid):
+        url = urljoin(self.api_endpoint, f"configuration/project?project-id={projectid}")
+        return await self.__exec_request(requests.get, url)
+
+    async def get_tenant_configuration(self):
+        url = urljoin(self.api_endpoint, f"configuration/tenant")
+        return await self.__exec_request(requests.get, url)
 
     @dashargs("from-date", "project-id", "project-ids", "scan-ids", "project-names", "source-origin", "source-type", "tags-keys", "tags-values", "to-date")
     async def get_scans(self, **kwargs):
         url = urljoin(self.api_endpoint, "scans")
-
         url = CxOneClient.__join_query_dict(url, kwargs)
-
-        return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
+        return await self.__exec_request(requests.get, url)
     
+    @dashargs("scan-ids")
+    async def get_sast_scans_metadata(self, **kwargs):
+        url = urljoin(self.api_endpoint, "sast-metadata")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
+
+    async def get_sast_scan_metadata(self, scanid, **kwargs):
+        url = urljoin(self.api_endpoint, f"sast-metadata/{scanid}")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
+
+    @dashargs("source-node-operation", "source-node", "source-line-operation", "source-line", "source-file-operation", "source-file", \
+              "sink-node-operation", "sink-node", "sink-line-operation", "sink-line", "sink-file-operation", \
+                "sink-file", "result-ids", "preset-id", "number-of-nodes-operation", "number-of-nodes", "notes-operation", \
+                    "first-found-at-operation", "first-found-at", "apply-predicates")
+    async def get_sast_scan_aggregate_results(self, scanid, groupby_field=['SEVERITY'], **kwargs):
+        url = urljoin(self.api_endpoint, f"sast-scan-summary/aggregate")
+        url = CxOneClient.__join_query_dict(url, kwargs | { 
+            'scan-id' : scanid,
+            'group-by-field' : groupby_field
+        })
+        return await self.__exec_request(requests.get, url)
 
     async def execute_scan(self, payload, **kwargs):
-
         url = urljoin(self.api_endpoint, "scans")
         url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.post, url, json=payload)
 
-        return await self.__exec_request(requests.post, url, json=payload, headers=await self.__get_request_headers() )
-
-    
     async def get_sast_scan_log(self, scanid, stream=False):
         url = urljoin(self.api_endpoint, f"logs/{scanid}/sast")
-        return await self.__exec_request(requests.get, url, stream=stream, headers=await self.__get_request_headers() )
+        response = await self.__exec_request(requests.get, url)
+
+        if response.ok and response.status_code == 307:
+            response = await self.__exec_request(requests.get, response.headers['Location'], stream=stream)
+
+        return response
 
     async def get_groups(self, **kwargs):
         url = CxOneClient.__join_query_dict(urljoin(self.admin_endpoint, "groups"), kwargs)
-        return await self.__exec_request(requests.get, url, headers=await self.__get_request_headers() )
+        return await self.__exec_request(requests.get, url)
+
+    async def get_groups(self, **kwargs):
+        url = CxOneClient.__join_query_dict(urljoin(self.admin_endpoint, "groups"), kwargs)
+        return await self.__exec_request(requests.get, url)
+
+    async def get_scan_workflow(self, scanid, **kwargs):
+        url = urljoin(self.api_endpoint, f"scans/{scanid}/workflow")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
 
 class ProjectRepoConfig:
 

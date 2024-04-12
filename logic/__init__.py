@@ -1,7 +1,6 @@
 import logging, asyncio, utils
 from cxone_api import paged_api, ProjectRepoConfig
 
-
 class Scheduler:
     __log = logging.getLogger("Scheduler")
 
@@ -177,6 +176,10 @@ class Scheduler:
 
         return len(new_scheduled_projects), len(removed_projects), len(changed_schedule.keys())
 
+    @property
+    def scheduled_scans(self):
+        return len(self.__the_schedule.keys())
+        
 
     async def __load_schedule(self, bad_cb = None):
         tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(bad_cb), self.__get_untagged_project_schedule(bad_cb))

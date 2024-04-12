@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python3
 import sys, os, logging, utils
 
 if sys.argv[0].lower().startswith("audit"):
@@ -35,7 +35,7 @@ while True:
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()
 
-        client = CxOneClient(oauth_id, oauth_secret, agent, version, auth_endpoint, 
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, agent, version, auth_endpoint, 
                             api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
 
 
@@ -73,6 +73,7 @@ while True:
             __log.info("Scheduler loop started")
             short_delay = False
             while True:
+                __log.info(f"Projects with scheduled scans: {the_scheduler.scheduled_scans}")
                 await asyncio.sleep(update_delay if not short_delay else 90)
                 __log.info("Updating schedule...")
                 try:
@@ -93,7 +94,8 @@ while True:
 
             for entry in (await Scheduler.audit(client, default_schedule, group_schedules, policies, skipped_entry_cb)).values():
                 for sched in entry:
-                    print(f'"{sched.project_id}","SCHEDULED","{str(sched).replace("'", "")}"')
+                    clean_sched = str(sched).replace("'", "")
+                    print(f'"{sched.project_id}","SCHEDULED","{clean_sched}"')
 
         if is_audit:
             asyncio.run(audit())

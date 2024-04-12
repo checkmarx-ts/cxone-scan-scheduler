@@ -4,7 +4,7 @@ run/*
 **/cxone_oauth_client_secret
 **/cxone_tenant
 env
-
+mitm*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

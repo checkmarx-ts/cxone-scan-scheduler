@@ -144,6 +144,25 @@ The Scan Scheduler runs as a container.  At startup, it crawls the tenant's proj
 checks periodically for any schedule changes and updates 
 the scan schedules accordingly.
 
+### Add Optional Trusted CA Certificates
+
+While the CheckmarxOne system uses TLS certificates signed by a public CA, it is possible that corporate
+proxies use certificates signed by a private CA.  If so, it is possible to import custom CA certificates
+when the scheduler starts.
+
+The custom certificates must meet the following criteria:
+
+* Must be in the PEM format.
+* Must be in a file ending with the extension `.crt`.
+* Only one certificate is in the file.
+* Must be mapped to the container path `/usr/local/share/ca-certificates`.
+
+As an example, if using Docker, it is possible to map a local file to a file in the container with this
+mapping option added to the container execution command line:
+
+`-v $(pwd)/custom-ca.pem:/usr/local/share/ca-certificates/custom-ca.crt`
+
+
 ### Required Secrets
 
 Docker secrets are used to securely store secrets needed during runtime.

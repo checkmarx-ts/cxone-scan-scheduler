@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python3
 import logging, argparse, utils, asyncio
 from cxone_api import CxOneClient
 from posix_ipc import Semaphore, BusyError, O_CREAT
@@ -38,7 +38,7 @@ async def main():
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()
 
-        client = CxOneClient(oauth_id, oauth_secret, agent, version, auth_endpoint, 
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, agent, version, auth_endpoint, 
                             api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
         
 
