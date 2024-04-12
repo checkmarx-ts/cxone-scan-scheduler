@@ -1,4 +1,4 @@
-import asyncio, uuid, requests, urllib, datetime
+import asyncio, uuid, requests, urllib, datetime, re
 from requests.compat import urljoin
 from pathlib import Path
 
@@ -8,7 +8,25 @@ class AuthException(BaseException):
     pass
     
 class CommunicationException(BaseException):
-    pass
+
+    @staticmethod
+    def __clean(content):
+        if type(content) is list:
+            return [CommunicationException.__clean(x) for x in content]
+        elif type(content) is tuple:
+            return (CommunicationException.__clean(x) for x in content)
+        elif type(content) is dict:
+            return {k:CommunicationException.__clean(v) for k,v in content.items()}
+        elif type(content) is str:
+            if re.match("^Bearer.*", content):
+                return "REDACTED"
+            else:
+                return content
+        else:
+            return content
+
+    def __init__(self, op, *args, **kwargs):
+        BaseException.__init__(self, f"Operation: {op.__name__} args: [{CommunicationException.__clean(args)}] kwargs: [{CommunicationException.__clean(kwargs)}]")
 
 
 class CxOneAuthEndpoint:
@@ -297,7 +315,7 @@ class CxOneClient:
             else:
                 return response
 
-        raise CommunicationException(f"{str(op)}{str(args)}{str(kwargs)}")
+        raise CommunicationException(op, *args, **kwargs)
 
 
     @staticmethod
