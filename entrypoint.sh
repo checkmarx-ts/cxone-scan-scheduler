@@ -1,5 +1,9 @@
 #!/bin/bash
 
+update-ca-certificates
+export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+echo "export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> /etc/environment
+
 [ -n "$CXONE_REGION" ] && echo "export CXONE_REGION=$CXONE_REGION" >> /etc/environment
 [ -n "$SINGLE_TENANT_AUTH" ] && echo "export SINGLE_TENANT_AUTH=$SINGLE_TENANT_AUTH" >> /etc/environment
 [ -n "$SINGLE_TENANT_API" ] && echo "export SINGLE_TENANT_API=$SINGLE_TENANT_API" >> /etc/environment
