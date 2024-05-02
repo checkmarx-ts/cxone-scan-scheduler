@@ -60,6 +60,10 @@ class AuthEU(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "eu.iam.checkmarx.net")
 
+class AuthDEU(CxOneAuthEndpoint):
+    def __init__(self, tenant_name):
+        super().__init__(tenant_name, "deu.iam.checkmarx.net")
+
 class AuthANZ(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "anz.iam.checkmarx.net")
@@ -72,15 +76,21 @@ class AuthSingapore(CxOneAuthEndpoint):
     def __init__(self, tenant_name):
         super().__init__(tenant_name, "sng.iam.checkmarx.net")
 
+class AuthUAE(CxOneAuthEndpoint):
+    def __init__(self, tenant_name):
+        super().__init__(tenant_name, "mea.iam.checkmarx.net")
+        
 
 AuthRegionEndpoints = {
     "US" : AuthUS,
     "US2" : AuthUS2,
     "EU" : AuthEU,
     "EU2" : AuthEU,
+    "DEU" : AuthDEU,
     "ANZ" : AuthANZ,
     "India" : AuthIndia,
-    "Singapore" : AuthSingapore
+    "Singapore" : AuthSingapore,
+    "UAE" : AuthUAE
 }
 
 
@@ -107,6 +117,10 @@ class ApiEU2(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("eu-2ast.checkmarx.net")
 
+class ApiDEU(CxOneApiEndpoint):
+    def __init__(self):
+        super().__init__("deu.checkmarx.net")
+
 class ApiANZ(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("anz.ast.checkmarx.net")
@@ -119,15 +133,21 @@ class ApiSingapore(CxOneApiEndpoint):
     def __init__(self):
         super().__init__("sng.ast.checkmarx.net")
 
+class ApiUAE(CxOneApiEndpoint):
+    def __init__(self):
+        super().__init__("mea.ast.checkmarx.net")
+
 
 ApiRegionEndpoints = {
     "US" : ApiUS,
     "US2" : ApiUS2,
     "EU" : ApiEU,
     "EU2" : ApiEU2,
+    "DEU" : ApiDEU,
     "ANZ" : ApiANZ,
     "India" : ApiIndia,
-    "Singapore" : ApiSingapore
+    "Singapore" : ApiSingapore,
+    "UAE" : ApiUAE
 }
 
 
@@ -193,11 +213,11 @@ class CxOneClient:
     __AGENT_NAME = 'CxOne PyClient'
 
 
-    def __common__init(self, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify):
+    def __common__init(self, agent_name, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify):
         with open(Path(__file__).parent / "version.txt", "rt") as version:
             self.__version = version.readline().rstrip()
 
-        self.__agent = f"{agent_name}/{agent_version}/({CxOneClient.__AGENT_NAME}/{self.__version})"
+        self.__agent = f"{agent_name}/({CxOneClient.__AGENT_NAME}/{self.__version})"
         self.__proxy = proxy
         self.__ssl_verify = ssl_verify
         self.__auth_lock = asyncio.Lock()
@@ -220,9 +240,9 @@ class CxOneClient:
 
 
     @staticmethod
-    def create_with_oauth(oauth_id, oauth_secret, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
+    def create_with_oauth(oauth_id, oauth_secret, agent_name, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
         inst = CxOneClient()
-        inst.__common__init(agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
+        inst.__common__init(agent_name, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
 
         inst.__auth_content = urllib.parse.urlencode( {
             "grant_type" : "client_credentials",
@@ -233,9 +253,9 @@ class CxOneClient:
         return inst
 
     @staticmethod
-    def create_with_api_key(api_key, agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
+    def create_with_api_key(api_key, agent_name, tenant_auth_endpoint, api_endpoint, timeout=60, retries=3, proxy=None, ssl_verify=True):
         inst = CxOneClient()
-        inst.__common__init(agent_name, agent_version, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
+        inst.__common__init(agent_name, tenant_auth_endpoint, api_endpoint, timeout, retries, proxy, ssl_verify)
 
         inst.__auth_content = urllib.parse.urlencode( {
             "grant_type" : "refresh_token",
@@ -354,7 +374,14 @@ class CxOneClient:
         url = CxOneClient.__join_query_dict(url, kwargs)
         return await self.__exec_request(requests.get, url)
 
+    async def create_project(self, **kwargs):
+        url = urljoin(self.api_endpoint, f"projects")
+        return await self.__exec_request(requests.post, url, json=kwargs)
 
+    async def update_project(self, id, payload):
+        url = urljoin(self.api_endpoint, f"projects/{id}")
+        return await self.__exec_request(requests.put, url, json=payload)
+    
     async def get_project(self, projectid):
         url = urljoin(self.api_endpoint, f"projects/{projectid}")
         return await self.__exec_request(requests.get, url)
@@ -396,10 +423,23 @@ class CxOneClient:
         })
         return await self.__exec_request(requests.get, url)
 
-    async def execute_scan(self, payload, **kwargs):
+    async def execute_scan(self, payload):
         url = urljoin(self.api_endpoint, "scans")
-        url = CxOneClient.__join_query_dict(url, kwargs)
         return await self.__exec_request(requests.post, url, json=payload)
+
+    async def get_upload_link(self):
+        url = urljoin(self.api_endpoint, "uploads")
+        return await self.__exec_request(requests.post, url)
+    
+    async def upload_zip(self, zip_path):
+        upload_url = (await self.get_upload_link()).json()['url']
+
+        with open(zip_path, "rb") as zip_to_upload:
+            upload_response = await self.__exec_request(requests.put, upload_url, data=zip_to_upload)
+            if not upload_response.ok:
+                return None
+
+        return upload_url
 
     async def get_sast_scan_log(self, scanid, stream=False):
         url = urljoin(self.api_endpoint, f"logs/{scanid}/sast")
@@ -422,6 +462,7 @@ class CxOneClient:
         url = urljoin(self.api_endpoint, f"scans/{scanid}/workflow")
         url = CxOneClient.__join_query_dict(url, kwargs)
         return await self.__exec_request(requests.get, url)
+
 
 class ProjectRepoConfig:
 
