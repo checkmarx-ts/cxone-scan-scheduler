@@ -1,5 +1,6 @@
 import logging, asyncio, utils
-from cxone_api import paged_api, ProjectRepoConfig
+from cxone_api import paged_api
+from cxone_api.projects import ProjectRepoConfig
 
 class Scheduler:
     __log = logging.getLogger("Scheduler")
