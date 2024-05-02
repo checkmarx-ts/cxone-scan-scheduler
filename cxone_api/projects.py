@@ -89,5 +89,20 @@ class ProjectRepoConfig:
     
     @property
     async def is_scm_imported(self):
-         return await self.__get_repomgr_config() is not None
+        return await self.__get_repomgr_config() is not None
     
+    @property
+    async def enabled_scanners(self):
+        cfg = await self.__get_repomgr_config()
+
+        if not await self.is_scm_imported or cfg is None:
+            return None
+         
+        engines = []
+         
+        for k in cfg.keys():
+            if k.lower().endswith("scannerenabled") and bool(cfg[k]):
+                engines.append(k.lower().removesuffix("scannerenabled"))
+        
+        return engines
+

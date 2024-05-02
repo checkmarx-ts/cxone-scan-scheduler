@@ -47,8 +47,17 @@ class Scheduler:
                     if bad_cb is not None:
                         bad_cb(project_data['id'], "Scan branch can't be determined.")
                     return None
+                
+                engines_from_tag = elements.pop(0) if len(elements) > 0 else None
+                engines = None
 
-                engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
+                # Use the engines set in the imported project configuration
+                if engines_from_tag is None and await repo_details.is_scm_imported:
+                    engines = await repo_details.enabled_scanners
+
+                if engines is None or len(engines) == 0:
+                    engines = utils.normalize_selected_engines_from_tag(engines_from_tag if engines_from_tag is not None else 'all')
+
                 if engines is None:
                     if bad_cb is not None:
                         bad_cb(project_data['id'], "Scan engines can't be determined.")
@@ -110,7 +119,7 @@ class Scheduler:
                         
                             if ss is not None:
                                 project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
-                                                                            await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url))
+                                                                            await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url))
 
                     if len(project_schedules) > 0:
                         result[project['id']] = project_schedules
@@ -118,7 +127,7 @@ class Scheduler:
                         ss = utils.ScheduleString(self.__default_schedule, self.__policies)
                         if ss.is_valid():
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
-                                                                                await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url)]
+                                                                                await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url)]
                 else:
                     Scheduler.__log.warning(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
 
