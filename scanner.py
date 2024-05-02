@@ -38,7 +38,7 @@ async def main():
         with open("version.txt", "rt") as ver:
             version = ver.readline().strip()
 
-        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, agent, version, auth_endpoint, 
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, f"{agent}/{version}", auth_endpoint, 
                             api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
         
 
@@ -79,13 +79,11 @@ async def main():
                 else:
                     __log.warning(f"Scheduled scan for project {args.projectid} branch {args.branch} is already running, skipping.")
 
-            except Exception:
-                pass
+            except Exception as ex:
+                __log.exception(ex)
             finally:
                 sem.release()
 
-            pass
-        
 
         except BusyError:
             __log.debug(f"Another process is handling scans for projectid {args.projectid} branch {args.branch}, skipping.")
