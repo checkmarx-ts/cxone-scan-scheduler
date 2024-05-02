@@ -98,8 +98,12 @@ while True:
                     print(f'"{sched.project_id}","SCHEDULED","{clean_sched}"')
 
         if is_audit:
-            asyncio.run(audit())
-            break
+            try:
+                asyncio.run(audit())
+            except Exception as ex:
+                __log.exception(ex)
+            finally:
+                break
         else:
             asyncio.run(scheduler())
 

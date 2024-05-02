@@ -28,7 +28,7 @@ class ProjectRepoConfig:
         return None
 
     async def __get_repomgr_config(self):
-
+        # Projects imported from the SCM have their repo credentials stored in the repo-manager
         if not "repoId" in self.__project_data.keys(): 
             return None
 
@@ -85,5 +85,9 @@ class ProjectRepoConfig:
     @property
     async def repo_url(self):
         url = await self.__get_logical_repo_url()
-        return url if len(url) > 0 else None
+        return url if url is not None and len(url) > 0 else None
+    
+    @property
+    async def is_scm_imported(self):
+         return await self.__get_repomgr_config() is not None
     
