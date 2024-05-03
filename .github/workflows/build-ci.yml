@@ -3,17 +3,28 @@ on:
     push:
 
 jobs:
-    build-docker:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Fetch Code
-              uses: actions/checkout@v4
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
-              with:
-                install: true
-                platforms: linux/amd64
-            - name: Execute Docker Build
-              run: docker build .
+  build-docker:
+      runs-on: ubuntu-latest
+      steps:
+          - name: Fetch Code
+            uses: actions/checkout@v4
+          - name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
+            with:
+              install: true
+              platforms: linux/amd64
+          - name: Execute Docker Build
+            run: docker build .
     
-      
+  execute-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+        with:
+          python-version: '3.12'
+      - name: Install packages
+        run: pip install -r ${{ github.workspace }}/requirements.txt
+      - name: Execute Unit Tests
+        run: python -m unittest discover -v -p *test.py -s ${{ github.workspace }}/tests

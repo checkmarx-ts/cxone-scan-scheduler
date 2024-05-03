@@ -474,6 +474,9 @@ class CxOneClient:
         url = urljoin(self.api_endpoint, f"repos-manager/repo/{repoid}")
         return await self.__exec_request(requests.get, url)
 
+    async def get_scm_by_id(self, scmId):
+        url = urljoin(self.api_endpoint, f"repos-manager/getscmdtobyid?scmId={scmId}")
+        return await self.__exec_request(requests.get, url)
 
 
 

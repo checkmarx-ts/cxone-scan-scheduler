@@ -1,4 +1,5 @@
 import asyncio
+from util import CloneUrlParser
 
 class ProjectRepoConfig:
 
@@ -7,6 +8,7 @@ class ProjectRepoConfig:
         self.__project_data = project_config
         self.__fetched_undocumented_config = False
         self.__fetched_repomgr_config = False
+        self.__fetched_scm_config = False
         self.__lock = asyncio.Lock()
    
     async def __get_undocumented_config(self):
@@ -16,7 +18,7 @@ class ProjectRepoConfig:
         async with self.__lock:
             if not self.__fetched_undocumented_config:
                 self.__fetched_undocumented_config = True
-                self.__undocumented_config = (await self.__client.get_project_configuration(self.__project_data['id'])).json()
+                self.__undocumented_config = (await self.__client.get_project_configuration(self.project_id)).json()
 
         return self.__undocumented_config
         
@@ -77,6 +79,17 @@ class ProjectRepoConfig:
             return await self.__get_primary_branch_from_repomgr_config()
 
         return None
+    
+    async def __get_scm_config(self):
+        if not await self.is_scm_imported:
+            return None
+        
+        async with self.__lock:
+            if not self.__fetched_scm_config:
+                self.__fetched_scm_config = True
+                self.__scm_config = (await self.__client.get_scm_by_id(await self.scm_id)).json()
+        
+        return self.__scm_config
         
     @property
     async def primary_branch(self):
@@ -90,6 +103,46 @@ class ProjectRepoConfig:
     @property
     async def is_scm_imported(self):
         return await self.__get_repomgr_config() is not None
+
+
+    @property
+    async def scm_id(self):
+        if not await self.is_scm_imported:
+            return None
+        
+        cfg = await self.__get_repomgr_config()
+
+        if cfg is None:
+            return None
+        elif "scmId" in cfg.keys(): 
+            return cfg['scmId']
+        else:
+            return None
+        
+    @property
+    async def scm_org(self):
+        if not await self.is_scm_imported:
+            return None
+
+        return CloneUrlParser(await self.scm_type, await self.repo_url).org
+        
+
+    @property
+    async def scm_type(self):
+        if not await self.is_scm_imported:
+            return None
+
+        cfg = await self.__get_scm_config()
+        if cfg is None:
+            return None
+        elif "type" in cfg.keys():
+            return cfg['type']
+        else:
+            return None
+
+    @property
+    def project_id(self):
+        return self.__project_data['id']
     
     async def get_enabled_scanners(self, by_branch):
         engines = []
@@ -104,7 +157,7 @@ class ProjectRepoConfig:
 
         if len(engines) == 0:
             # If no engines configured by the import config, use the engines for the last scan.
-            last_scan = (await self.__client.get_projects_last_scan(project_ids=[self.__project_data['id']], branch=by_branch, limit=1)).json()
+            last_scan = (await self.__client.get_projects_last_scan(project_ids=[self.project_id], branch=by_branch, limit=1)).json()
             if len(last_scan) > 0:
                 latest_scan_header = list(last_scan.values())[0]
                 if 'engines' in latest_scan_header.keys():
