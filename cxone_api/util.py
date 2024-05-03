@@ -3,7 +3,8 @@ import re
 class CloneUrlParser:
 
     __parsers = {
-        "bitbucket" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(scm/)?(?P<org>.+)/(?P<repo>.+)\\.git$")
+        "bitbucket" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(scm/)?(?P<org>.+)/(?P<repo>.+)\\.git$"),
+        "azure" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(?P<org>.+)/(?P<project>.+)/_git/(?P<repo>.+)$")
     }
 
     __default = re.compile("^.*/(?P<org>.+)/(?P<repo>.+)\\.git$")

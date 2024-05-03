@@ -1,5 +1,5 @@
 import asyncio
-from util import CloneUrlParser
+from .util import CloneUrlParser
 
 class ProjectRepoConfig:
 

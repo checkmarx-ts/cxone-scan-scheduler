@@ -24,12 +24,10 @@ RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     apt-get clean && \
     dpkg --purge $(dpkg --get-selections | grep deinstall | cut -f1)
 
-COPY cxone_api /opt/cxone/cxone_api
+COPY *.py entrypoint.sh *.json /opt/cxone/
 COPY logic /opt/cxone/logic
 COPY utils /opt/cxone/utils
-COPY *.py /opt/cxone
-COPY entrypoint.sh /opt/cxone
-COPY *.json /opt/cxone
+COPY cxone_api /opt/cxone/cxone_api
 
 
 RUN ln -s scheduler.py scheduler && \

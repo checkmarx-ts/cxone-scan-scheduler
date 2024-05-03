@@ -65,14 +65,27 @@ class TestCloneUrlADO(unittest.TestCase):
     def test_canary(self):
         self.assertTrue(True)
 
+    def test_http_with_port(self):
+        parse = CloneUrlParser("azure", "http://the_server:8080/tfs/the_org/the_project/_git/the_repo")
+        self.assertTrue(parse.scheme == "http" 
+                        and parse.creds is None
+                        and parse.org == "the_org"
+                        and parse.repo == "the_repo")
+
+    def test_https_with_port(self):
+        parse = CloneUrlParser("azure", "https://someone@the_server:8080/tfs/the_org/the_project/_git/the_repo")
+        self.assertTrue(parse.scheme == "https" 
+                        and parse.creds == "someone"
+                        and parse.org == "the_org"
+                        and parse.repo == "the_repo")
 
 
-class TestCloneUrlGitHub(unittest.TestCase):
-
-    def test_canary(self):
-        self.assertTrue(True)
-
-
+    def test_ssh_with_port(self):
+        parse = CloneUrlParser("azure", "ssh://the_server:22/tfs/the_org/the_project/_git/the_repo")
+        self.assertTrue(parse.scheme == "ssh" 
+                        and parse.creds is None
+                        and parse.org == "the_org"
+                        and parse.repo == "the_repo")
 
 if __name__ == '__main__':
     unittest.main()
