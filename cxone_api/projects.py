@@ -61,10 +61,12 @@ class ProjectRepoConfig:
 
 
     async def __get_logical_repo_url(self):
-        if len(self.__project_data['repoUrl']) > 0:
-            return self.__project_data['repoUrl']
-        elif len(await self.__get_repourl_from_repomgr_config()) > 0:
+
+
+        if len(await self.__get_repourl_from_repomgr_config()) > 0:
             return await self.__get_repourl_from_repomgr_config()
+        elif len(self.__project_data['repoUrl']) > 0:
+            return self.__project_data['repoUrl']
         elif len(await self.__get_repourl_from_undocumented_config()) > 0:
             return await self.__get_repourl_from_undocumented_config()
         else:
