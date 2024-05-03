@@ -374,6 +374,13 @@ class CxOneClient:
         url = CxOneClient.__join_query_dict(url, kwargs)
         return await self.__exec_request(requests.get, url)
 
+    @dashargs("application-id", "project-ids", "scan-status")
+    async def get_projects_last_scan(self, **kwargs):
+        url = urljoin(self.api_endpoint, "projects/last-scan")
+        url = CxOneClient.__join_query_dict(url, kwargs)
+        return await self.__exec_request(requests.get, url)
+
+
     async def create_project(self, **kwargs):
         url = urljoin(self.api_endpoint, f"projects")
         return await self.__exec_request(requests.post, url, json=kwargs)

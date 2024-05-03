@@ -51,9 +51,8 @@ class Scheduler:
                 engines_from_tag = elements.pop(0) if len(elements) > 0 else None
                 engines = None
 
-                # Use the engines set in the imported project configuration
-                if engines_from_tag is None and await repo_details.is_scm_imported:
-                    engines = await repo_details.enabled_scanners
+                if engines_from_tag is None:
+                    engines = await repo_details.get_enabled_scanners(branch)
 
                 if engines is None or len(engines) == 0:
                     engines = utils.normalize_selected_engines_from_tag(engines_from_tag if engines_from_tag is not None else 'all')

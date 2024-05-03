@@ -91,18 +91,24 @@ class ProjectRepoConfig:
     async def is_scm_imported(self):
         return await self.__get_repomgr_config() is not None
     
-    @property
-    async def enabled_scanners(self):
-        cfg = await self.__get_repomgr_config()
-
-        if not await self.is_scm_imported or cfg is None:
-            return None
-         
+    async def get_enabled_scanners(self, by_branch):
         engines = []
-         
-        for k in cfg.keys():
-            if k.lower().endswith("scannerenabled") and bool(cfg[k]):
-                engines.append(k.lower().removesuffix("scannerenabled"))
-        
+
+        if await self.is_scm_imported:
+            # Use the engine configuration on the import
+            cfg = await self.__get_repomgr_config()
+
+            for k in cfg.keys():
+                if k.lower().endswith("scannerenabled") and bool(cfg[k]):
+                    engines.append(k.lower().removesuffix("scannerenabled"))
+
+        if len(engines) == 0:
+            # If no engines configured by the import config, use the engines for the last scan.
+            last_scan = (await self.__client.get_projects_last_scan(project_ids=[self.__project_data['id']], branch=by_branch, limit=1)).json()
+            if len(last_scan) > 0:
+                latest_scan_header = list(last_scan.values())[0]
+                if 'engines' in latest_scan_header.keys():
+                    engines = latest_scan_header['engines'] 
+
         return engines
 
