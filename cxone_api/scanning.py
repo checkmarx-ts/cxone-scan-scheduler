@@ -2,14 +2,13 @@ from .projects import ProjectRepoConfig
 from . import CxOneClient
 from .util import json_on_ok
 from .exceptions import ScanException
+from requests import Response
 
 
 class ScanInvoker:
-
     @staticmethod
-    async def scan(cxone_client : CxOneClient, project_repo : ProjectRepoConfig, branch : str, engines : list = None , tags : dict = None, src_zip_path : str = None,
-                   clone_user : str = None, clone_cred_type : str = None, clone_cred_value : str = None) -> str:
-
+    async def scan_get_response(cxone_client : CxOneClient, project_repo : ProjectRepoConfig, branch : str, engines : list = None , tags : dict = None, src_zip_path : str = None,
+                   clone_user : str = None, clone_cred_type : str = None, clone_cred_value : str = None) -> Response:
         submit_payload = {}
 
         target_repo = await project_repo.repo_url
@@ -42,13 +41,7 @@ class ScanInvoker:
             if target_repo is not None:
                 submit_payload["handler"]["repoUrl"] = target_repo
 
-            scan_submit_response = await cxone_client.execute_scan(submit_payload)
-
-            if not scan_submit_response.ok:
-                raise ScanException(f"Scan error for project {project_repo.project_id}: Status: {scan_submit_response.status_code} : {scan_submit_response.json()}")
-            
-            return json_on_ok(scan_submit_response)['id']
-
+            return  await cxone_client.execute_scan(submit_payload)
         else:
             submit_payload["repoOrigin"] = await project_repo.scm_type
             submit_payload["project"] = {
@@ -62,13 +55,21 @@ class ScanInvoker:
 
             scm_org = await project_repo.scm_org
 
-            scan_submit_response = await cxone_client.execute_repo_scan(await project_repo.scm_id, project_repo.project_id, 
+            return await cxone_client.execute_repo_scan(await project_repo.scm_id, project_repo.project_id, 
                                                                         scm_org if scm_org is not None else "anyorg", submit_payload)
-            if not scan_submit_response.ok:
-                raise ScanException(f"Scan error for project {project_repo.project_id}: Status: {scan_submit_response.status_code} : {scan_submit_response.json()}")
-            
-            return None
-       
+
+    @staticmethod
+    async def scan_get_scanid(cxone_client : CxOneClient, project_repo : ProjectRepoConfig, branch : str, engines : list = None , tags : dict = None, src_zip_path : str = None,
+                   clone_user : str = None, clone_cred_type : str = None, clone_cred_value : str = None) -> str:
+        
+        response = await ScanInvoker.scan_get_response(cxone_client, project_repo, branch, engines, tags, src_zip_path, clone_user, clone_cred_type, clone_cred_value)
+        response_json = response.json()
+
+        if not response.ok:
+            raise ScanException(f"Scan error for project {project_repo.project_id}: Status: {response.status_code} : {response.json()}")
+        
+        return json_on_ok(response_json)['id'] if "id" in response_json.keys() else None
+
 
     @staticmethod
     async def __upload_zip(cxone_client : CxOneClient, zip_path : str) -> str:
