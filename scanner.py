@@ -15,11 +15,12 @@ parser.add_argument('--repo', '-r', action='store', type=str, required=True, des
 parser.add_argument('--branch', '-b', action='store', type=str, required=True, dest="branch", help="The code repository URL.")
 parser.add_argument('--schedule', '-s', action='store', type=str, required=False, default='unknown', dest="schedule", help="The schedule string assigned to the 'scheduled' scan tag.")
 
-
-
 async def main():
     try:
         args = parser.parse_args()
+
+        if args.is_imported and (args.scm_id is None or args.scm_org is None):
+            raise Exception("The SCM id and scm org are required to start a scan for an imported project.")
         
         tenant, oauth_id, oauth_secret = utils.load_secrets()
         assert not tenant is None

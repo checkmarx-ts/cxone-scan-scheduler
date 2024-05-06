@@ -1,16 +1,31 @@
 import asyncio
 from .util import CloneUrlParser
+from . import CxOneClient
 
 class ProjectRepoConfig:
 
-    def __init__(self, cxone_client, project_config):
+    def __common_init(self, cxone_client : CxOneClient):
         self.__client = cxone_client
-        self.__project_data = project_config
         self.__fetched_undocumented_config = False
         self.__fetched_repomgr_config = False
         self.__fetched_scm_config = False
         self.__lock = asyncio.Lock()
-   
+
+    @staticmethod
+    async def from_loaded_json(cxone_client : CxOneClient, json : dict):
+        retval = ProjectRepoConfig()
+        ProjectRepoConfig.__common_init(retval, cxone_client)
+        retval.__project_data = json
+
+        return retval
+
+    @staticmethod
+    async def from_project_id(cxone_client : CxOneClient, project_id : str):
+        retval = ProjectRepoConfig()
+        ProjectRepoConfig.__common_init(retval, cxone_client)
+        retval.__project_data = (await cxone_client.get_project(project_id)).json()
+        return retval
+ 
     async def __get_undocumented_config(self):
         # The documented project API seems to have a bug and does not return the repoUrl.  The undocumented
         # API used by the UI has it.  The undocumented API will no longer be called when the project

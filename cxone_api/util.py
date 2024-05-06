@@ -3,11 +3,11 @@ import re
 class CloneUrlParser:
 
     __parsers = {
-        "bitbucket" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(scm/)?(?P<org>.+)/(?P<repo>.+)\\.git$"),
-        "azure" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(?P<org>.+)/(?P<project>.+)/_git/(?P<repo>.+)$")
+        "bitbucket" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(scm/)?(?P<org>.+)/(?P<repo>.+)(\\.git)?$"),
+        "azure" : re.compile("^(?P<scheme>.+)://((?P<cred>.+)@)?.+/(?P<org>.+)/(?P<project>.+)/_git/(?P<repo>.+)(\\.git)?$")
     }
 
-    __default = re.compile("^.*/(?P<org>.+)/(?P<repo>.+)\\.git$")
+    __default = re.compile("^.*[/:]{1}(?P<org>.+)/(?P<repo>.+)(\\.git)?$")
 
     def __init__(self, repo_type, clone_url):
         matcher = CloneUrlParser.__parsers[repo_type] if repo_type in CloneUrlParser.__parsers.keys() else CloneUrlParser.__default
