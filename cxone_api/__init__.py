@@ -1,33 +1,9 @@
 import asyncio, uuid, requests, urllib, datetime, re
 from requests.compat import urljoin
 from pathlib import Path
+from .exceptions import AuthException, CommunicationException, ResponseException
 
 DEFAULT_SCHEME = "https"
-
-class AuthException(BaseException):
-    pass
-    
-class CommunicationException(BaseException):
-
-    @staticmethod
-    def __clean(content):
-        if type(content) is list:
-            return [CommunicationException.__clean(x) for x in content]
-        elif type(content) is tuple:
-            return (CommunicationException.__clean(x) for x in content)
-        elif type(content) is dict:
-            return {k:CommunicationException.__clean(v) for k,v in content.items()}
-        elif type(content) is str:
-            if re.match("^Bearer.*", content):
-                return "REDACTED"
-            else:
-                return content
-        else:
-            return content
-
-    def __init__(self, op, *args, **kwargs):
-        BaseException.__init__(self, f"Operation: {op.__name__} args: [{CommunicationException.__clean(args)}] kwargs: [{CommunicationException.__clean(kwargs)}]")
-
 
 class CxOneAuthEndpoint:
 
@@ -434,19 +410,22 @@ class CxOneClient:
         url = urljoin(self.api_endpoint, "scans")
         return await self.__exec_request(requests.post, url, json=payload)
 
+    async def execute_repo_scan(self, scmid, projectId, repo_org, payload):
+        url = urljoin(self.api_endpoint, f"repos-manager/scms/{scmid}/orgs/{repo_org}/repo/projectScan?projectId={projectId}")
+        return await self.__exec_request(requests.post, url, json=payload)
+
     async def get_upload_link(self):
         url = urljoin(self.api_endpoint, "uploads")
         return await self.__exec_request(requests.post, url)
     
-    async def upload_zip(self, zip_path):
-        upload_url = (await self.get_upload_link()).json()['url']
+    async def upload_to_link(self, upload_link, zip_path):
+        upload_response = None
 
         with open(zip_path, "rb") as zip_to_upload:
-            upload_response = await self.__exec_request(requests.put, upload_url, data=zip_to_upload)
-            if not upload_response.ok:
-                return None
-
-        return upload_url
+            upload_response = await self.__exec_request(requests.put, upload_link, data=zip_to_upload)
+        
+        return upload_response
+   
 
     async def get_sast_scan_log(self, scanid, stream=False):
         url = urljoin(self.api_endpoint, f"logs/{scanid}/sast")

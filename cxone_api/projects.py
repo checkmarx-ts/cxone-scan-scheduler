@@ -1,5 +1,5 @@
 import asyncio
-from .util import CloneUrlParser
+from .util import CloneUrlParser, json_on_ok
 from . import CxOneClient
 
 class ProjectRepoConfig:
@@ -23,7 +23,7 @@ class ProjectRepoConfig:
     async def from_project_id(cxone_client : CxOneClient, project_id : str):
         retval = ProjectRepoConfig()
         ProjectRepoConfig.__common_init(retval, cxone_client)
-        retval.__project_data = (await cxone_client.get_project(project_id)).json()
+        retval.__project_data = json_on_ok(await cxone_client.get_project(project_id))
         return retval
  
     async def __get_undocumented_config(self):
@@ -33,7 +33,7 @@ class ProjectRepoConfig:
         async with self.__lock:
             if not self.__fetched_undocumented_config:
                 self.__fetched_undocumented_config = True
-                self.__undocumented_config = (await self.__client.get_project_configuration(self.project_id)).json()
+                self.__undocumented_config = json_on_ok(await self.__client.get_project_configuration(self.project_id))
 
         return self.__undocumented_config
         
@@ -53,7 +53,7 @@ class ProjectRepoConfig:
             if not self.__fetched_repomgr_config:
                 self.__fetched_repomgr_config = True
                 repoId = self.__project_data['repoId']
-                self.__repomgr_config = (await self.__client.get_repo_by_id(repoId)).json()
+                self.__repomgr_config = json_on_ok(await self.__client.get_repo_by_id(repoId))
         
         return self.__repomgr_config
 
@@ -99,10 +99,12 @@ class ProjectRepoConfig:
         if not await self.is_scm_imported:
             return None
         
+        this_scm_id = await self.scm_id
+        
         async with self.__lock:
             if not self.__fetched_scm_config:
                 self.__fetched_scm_config = True
-                self.__scm_config = (await self.__client.get_scm_by_id(await self.scm_id)).json()
+                self.__scm_config = json_on_ok(await self.__client.get_scm_by_id(this_scm_id))
         
         return self.__scm_config
         
@@ -156,6 +158,21 @@ class ProjectRepoConfig:
             return None
 
     @property
+    async def repo_id(self):
+        if not await self.is_scm_imported:
+            return None
+       
+        return self.__project_data['repoId']
+
+    @property
+    async def scm_repo_id(self):
+        if not await self.is_scm_imported:
+            return None
+       
+        return self.__project_data['scmRepoId']
+
+
+    @property
     def project_id(self):
         return self.__project_data['id']
     
@@ -172,7 +189,7 @@ class ProjectRepoConfig:
 
         if len(engines) == 0:
             # If no engines configured by the import config, use the engines for the last scan.
-            last_scan = (await self.__client.get_projects_last_scan(project_ids=[self.project_id], branch=by_branch, limit=1)).json()
+            last_scan = json_on_ok(await self.__client.get_projects_last_scan(project_ids=[self.project_id], branch=by_branch, limit=1))
             if len(last_scan) > 0:
                 latest_scan_header = list(last_scan.values())[0]
                 if 'engines' in latest_scan_header.keys():

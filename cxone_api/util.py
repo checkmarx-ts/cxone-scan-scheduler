@@ -1,4 +1,12 @@
 import re
+from .exceptions import ResponseException
+from requests import Response
+
+def json_on_ok(response : Response, specific_responses : list = None):
+    if (specific_responses is None and response.ok) or (specific_responses is not None and response.status_code in specific_responses):
+        return response.json()
+    else:
+        raise ResponseException(f"Unable to get JSON response: Code: [{response.status_code}] Url: {response.request.url}")
 
 class CloneUrlParser:
 
