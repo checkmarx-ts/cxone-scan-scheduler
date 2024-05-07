@@ -1,10 +1,11 @@
 # Checkmarx One Scan Scheduler
 
-This provides a method of scheduling scans in Checkmarx One.  Some
-highlights of how it works:
+The scan scheduler provides a method of automating scan invocation by cadence in Checkmarx One (CxOne).
+
+Some highlights of how it works:
 
 * Runs in a container that builds the scan schedule on startup.
-* Works for single- or multi-tenant Checkmarx One.
+* Works for single- or multi-tenant CxOne.
 * Scans can be scheduled per project using one or more of the
 following methods:
     * A tag applied to the project with scan details.
@@ -18,7 +19,7 @@ based on changes in projects that would affect schedule assignments.
 
 Scheduling scans for a project requires the project has a configured way to clone code from the repository to be scanned.
 If the repository is private, a supported set of credentials must also be configured so that the code for scanning can be
-cloned.
+cloned. Projects created using the "Code Repository" integration will have the clone credentials automatically managed without the need to configure credentials for each repository.
 
 The following methods can be used to schedule a scan:
 
@@ -29,15 +30,30 @@ The following methods can be used to schedule a scan:
 
 ### Scheduling via Tags
 
-Scheduling a project for scanning requires adding a tag to the project in the form of:
+This is the preferred method of scheduling scans.  Scheduling a project for
+scanning requires adding a tag to the project in the form of:
 
 ```
 schedule:<schedule>:<branch>:<engines>
 ```
 
-Only one `schedule` tag may be added to a project.
+Only one `schedule` tag may be added to a project.  The elements of the
+schedule string (e.g. `<schedule>:<branch>:<engines>`) are described below.
 
-#### Element: `<schedule>`
+The `<branch>` and `<engines>` elements are optional.  Some examples of schedule
+strings:
+
+* `<schedule>:<branch>:<engines>` - a schedule string that defines all possible elements.
+* `<schedule>` - a schedule string that only defines the scan invocation cadence.  The branch and engines will be determined following the logic described below.
+* `<schedule>:<branch>` - a schedule string that defines the scan invocation cadence
+as well as the branch to be scanned on each scan invocation.  The engines for
+the scan will be determined following the logic described below.
+* `<schedule>::<engines>` - a schedule string that defines the scan invocation cadence as well as the engines used for the scan.  The branch has been 
+omitted from the schedule string; the branch used for
+the scan will be determined following the logic described below.
+
+
+#### Element: `<schedule>` (required)
 
 The `<schedule>` for scans can be one of the following values:
 
@@ -45,22 +61,42 @@ The `<schedule>` for scans can be one of the following values:
 * `daily`
 * A custom configured [policy name](#policy-definitions).
 
+The image below shows an example of projects configured with different scan
+schedules:
 
-#### Element: `<branch>`
+* `schedule:2x-daily` corresponds to a [custom scan policy](#policy-definitions)
+with the name `POLICY_2X_DAILY`.
+* `schedule:daily` corresponds to the built-in `daily` scan schedule.
+* `schedule:general-audit-policy` corresponds to a 
+[custom scan policy](#policy-definitions) with the name
+`POLICY_GENERAL_AUDIT_POLICY`.
 
-The name of the branch to schedule.  If not provided, the primary branch selected in the project view is used.  Selection of the primary branch is shown in the image below:
+
+![schedule examples](images/schedule-tags.png "Schedule Examples")
+
+#### Element: `<branch>` (optional)
+
+The name of the branch to schedule.  The branch to scan is selected by the
+following order of precedence:
+
+1. The branch defined in the tag.
+2. The branch selected as the `Primary Branch` in the project configuration.
+3. The default branch as defined in the SCM when the project was imported with a code repository integration.
+
+If the branch to scan can't be determined, the scan will not be scheduled.
+
+Selection of the primary branch via the project configuration is shown in the image below:
 
 ![primary branch selection](images/primary-branch.png "Primary Branch Selection")
 
-If the branch is not provided and no primary branch has been set, the scan will not be scheduled.
 
-#### Element: `<engines>`
+
+#### Element: `<engines>` (optional)
 
 The value for `<engines>` can be one of the following:
 
-
-* `all` to scan with all engines
-* Empty, which implies `all`
+* `all` to scan with all engines.
+* Empty which follows the logic described below.
 * A single engine name, which is currently one of the following:
     * `sast`
     * `sca`
@@ -68,8 +104,25 @@ The value for `<engines>` can be one of the following:
     * `apisec`
 * A comma-separated list of two or more of the single engine names.
 
-Duplicated or invalid engine names are ignored.  If no valid set of
-engine names can be determined, `all` is assumed.
+Duplicated or invalid engine names are ignored.  
+
+The engines for the scan are chosen in the following precedence order:
+
+1. Engines defined explicitly in the tag override all other engine selections.
+2. For a project created with a code repository integration, the engines selected in the "Code Repository"
+project settings.
+3. The engines that were used in the last scan.
+4. If the engines for the scan can't be determined, `all` engines are selected.
+
+### Scheduling with a Default Schedule
+
+A default schedule can be applied to projects that are not [scheduled with a tag](#scheduling-via-tags)
+or [scheduled with a group](#scheduling-via-assigned-groups).  This method is not advised
+unless there are very few projects to schedule for scanning.  If a large number of projects are scheduled to scan
+by default, it may cause other scans to take longer as they wait for an available scan engine.
+
+A default schedule  is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
+will cause all projects that have no deterministic schedule to assume the default schedule.
 
 ### Scheduling via Assigned Groups
 
@@ -79,7 +132,7 @@ scheduling environment variables.
 
 Projects can be assigned to zero or more groups.  If a project is not
 assigned to a group, a schedule will only be executed if the project
-has a `schedule` tag of a default schedule has been defined. Group schedules 
+has a `schedule` tag or a default schedule has been defined. Group schedules 
 only execute using the project's configured primary branch; if a
 project does not have a primary branch configured, the scan is not scheduled.
 
@@ -105,38 +158,14 @@ scheduled scan is executing for that project.  This will prevent overlapping sch
 starting multiple scans or long-running scans from being started before
 the previously scheduled scan is completed.
 
-Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>`.  This
-will allow validation that scheduled scans are executing and verification of the
-scan schedule that caused the scan invocation.
+Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.  Scans invoked for projects
+created with a Code Repository integration can't be tagged until the scan is complete.
+Since the scheduler keeps no state and does not monitor scan executions, scans for projects
+created by a Code Repository integration will not be tagged.
 
-### Example Tags
-
-Schedule a daily scan of the project's primary branch using all engines.
-
-```
-schedule:daily
-```
-
-
-Schedule a daily scan of the `master` branch using all engines.
-
-```
-schedule:daily:master:all
-```
-
-Schedule a daily scan at midnight limited to weekdays using the 
-project's primary branch, the sast engine, and a custom defined
-scan policy name.
-
-```
-schedule:weekdays-midnight::sast
-```
-
-Schedule a daily scan at midnight limited to weekdays using the branch `master` with the sast and sca engines.
-
-```
-schedule:weekdays-midnight:master:sast,sca
-```
+If auditing scans from the list of all scans, filtering for scheduled scans
+can be accomplished using the `Initiator` column.  The initiator will use the name of 
+the Checkmarx One OAuth client used by the scanner to interact with the Checkmarx One API.
 
 ## Scan Scheduler Configuration
 
@@ -146,7 +175,7 @@ the scan schedules accordingly.
 
 ### Add Optional Trusted CA Certificates
 
-While the CheckmarxOne system uses TLS certificates signed by a public CA, it is possible that corporate
+While the Checkmarx One system uses TLS certificates signed by a public CA, it is possible that corporate
 proxies use certificates signed by a private CA.  If so, it is possible to import custom CA certificates
 when the scheduler starts.
 
@@ -190,9 +219,9 @@ OAuth client does not require this role.
 A custom role with limited capabilities may be configured if desired.  The `ast-scanner`
 role will allow the scan scheduler to see all projects, create
 scheduled scan for all projects, and execute scans for all projects. 
-This may not always be a desirable scenario.  
+This level of access may not be appropriate for all organizations.  
 
-To limit the Scan Scheduler to limit project visibility via group membership
+To limit the Scan Scheduler's project visibility via group membership
 , the following minimum permissions can be assigned to the OAuth Client 
 or as a custom composite role:
 
@@ -213,12 +242,12 @@ The following runtime environment variables are required to configure the system
 
 |Variable|Default|Description|
 |-|-|-|
-|`CXONE_REGION`|N/A| Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `ANZ`,`India`, or `Singapore`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
+|`CXONE_REGION`|N/A| Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
 |`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
 |`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
-|`DEFAULT_SCHEDULE`|N/A|This defines the default schedule to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` string. |
-|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.
-|`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match other environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` string.|
+|`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
+|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.
+|`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
 |`SSL_VERIFY`|`True`| Set to `False` to turn off SSL certificate validation.|
 |`PROXY`| N/A | Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
@@ -290,7 +319,7 @@ There are two other runtimes that can be specified: `audit` and
 ##### Executing `scanner`
 
 The `scanner` is the tool used by `Cron` to execute scans.  It has some self-explanatory command line arguments that can be retrieved with the `-h` option.
-Executing the `scanner` to see the help, for example, could be done using the following command line if running Docker locally:
+Executing `scanner` to see the help, for example, could be done using the following command line if running Docker locally:
 
 ```
 docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest scanner -h

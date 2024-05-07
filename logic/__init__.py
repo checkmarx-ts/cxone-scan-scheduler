@@ -1,5 +1,6 @@
 import logging, asyncio, utils
-from cxone_api import paged_api, ProjectRepoConfig
+from cxone_api import paged_api
+from cxone_api.projects import ProjectRepoConfig
 
 class Scheduler:
     __log = logging.getLogger("Scheduler")
@@ -30,7 +31,7 @@ class Scheduler:
                 bad_cb(project_data['id'], "No schedule tag value.")
             return None
         
-        repo_details = ProjectRepoConfig(self.__client, project_data)
+        repo_details = await ProjectRepoConfig.from_loaded_json(self.__client, project_data)
         
         elements = schedule_tag_value.split(":")
 
@@ -46,8 +47,16 @@ class Scheduler:
                     if bad_cb is not None:
                         bad_cb(project_data['id'], "Scan branch can't be determined.")
                     return None
+                
+                engines_from_tag = elements.pop(0) if len(elements) > 0 else None
+                engines = None
 
-                engines = utils.normalize_engine_set(elements.pop(0) if len(elements) > 0 else 'all')
+                if engines_from_tag is None:
+                    engines = await repo_details.get_enabled_scanners(branch)
+
+                if engines is None or len(engines) == 0:
+                    engines = utils.normalize_selected_engines_from_tag(engines_from_tag if engines_from_tag is not None else 'all')
+
                 if engines is None:
                     if bad_cb is not None:
                         bad_cb(project_data['id'], "Scan engines can't be determined.")
@@ -99,8 +108,8 @@ class Scheduler:
                     continue
 
                 # Check that repo is defined and primary branch is defined
-                repo_cfg = ProjectRepoConfig(self.__client, project)
-                if (await repo_cfg.repo_url) is not None and (await repo_cfg.primary_branch) is not None:
+                repo_cfg = await ProjectRepoConfig.from_loaded_json(self.__client, project)
+                if (await repo_cfg.repo_url is not None) and (await repo_cfg.primary_branch is not None):
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:
                         if len(by_gid.keys()) > 0:
@@ -109,7 +118,7 @@ class Scheduler:
                         
                             if ss is not None:
                                 project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
-                                                                            await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url))
+                                                                            await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url))
 
                     if len(project_schedules) > 0:
                         result[project['id']] = project_schedules
@@ -117,7 +126,7 @@ class Scheduler:
                         ss = utils.ScheduleString(self.__default_schedule, self.__policies)
                         if ss.is_valid():
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
-                                                                                await repo_cfg.primary_branch, utils.normalize_engine_set('all'), await repo_cfg.repo_url)]
+                                                                                await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url)]
                 else:
                     Scheduler.__log.warning(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
 

@@ -153,7 +153,7 @@ class ScheduleString:
         policy_strings = [f"^{x}$" for x in policy_dict.keys()]
         policy_strings.append("^hourly$|^daily$")
         self.__validator = re.compile("|".join(policy_strings))
-        self.__schedule = schedule.lower()
+        self.__schedule = schedule.lower().strip("\"\'")
         self.__policies = policy_dict
 
     def is_valid(self):
@@ -270,9 +270,11 @@ def get_proxy_config():
     else:
         return None
 
+def available_engines():
+    return ['sast', 'kics','sca','apisec']
 
-def normalize_engine_set(engine_string):
-    available = ['sast', 'kics','sca','apisec']
+def normalize_selected_engines_from_tag(engine_string):
+    available = available_engines()
     result = available if 'all' in engine_string.lower() or len(engine_string) == 0 else []
 
     if len(result) == 0:

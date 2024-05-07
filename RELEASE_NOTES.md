@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.2
+
+* Support added for projects created by code repository integrations.
+* Bug fixes.
+* Documentation updates.
+
 ## v1.1
 
 * Bug fix for auth token not refreshing properly.
