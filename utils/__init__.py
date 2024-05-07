@@ -153,7 +153,7 @@ class ScheduleString:
         policy_strings = [f"^{x}$" for x in policy_dict.keys()]
         policy_strings.append("^hourly$|^daily$")
         self.__validator = re.compile("|".join(policy_strings))
-        self.__schedule = schedule.lower()
+        self.__schedule = schedule.lower().strip("\"\'")
         self.__policies = policy_dict
 
     def is_valid(self):

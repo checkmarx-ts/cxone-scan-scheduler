@@ -109,7 +109,7 @@ class Scheduler:
 
                 # Check that repo is defined and primary branch is defined
                 repo_cfg = await ProjectRepoConfig.from_loaded_json(self.__client, project)
-                if (await repo_cfg.repo_url) is not None and (await repo_cfg.primary_branch) is not None:
+                if (await repo_cfg.repo_url is not None) and (await repo_cfg.primary_branch is not None):
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:
                         if len(by_gid.keys()) > 0:
