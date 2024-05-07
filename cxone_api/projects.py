@@ -26,6 +26,14 @@ class ProjectRepoConfig:
         retval.__project_data = json_on_ok(await cxone_client.get_project(project_id))
         return retval
  
+
+    def __getattr__(self, name):
+        if name in self.__project_data.keys():
+            return self.__project_data[name]
+        else:
+            raise AttributeError(name)
+        
+
     async def __get_undocumented_config(self):
         # The documented project API seems to have a bug and does not return the repoUrl.  The undocumented
         # API used by the UI has it.  The undocumented API will no longer be called when the project

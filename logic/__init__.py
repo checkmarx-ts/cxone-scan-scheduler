@@ -31,7 +31,7 @@ class Scheduler:
                 bad_cb(project_data['id'], "No schedule tag value.")
             return None
         
-        repo_details = ProjectRepoConfig.from_loaded_json(self.__client, project_data)
+        repo_details = await ProjectRepoConfig.from_loaded_json(self.__client, project_data)
         
         elements = schedule_tag_value.split(":")
 
@@ -108,7 +108,7 @@ class Scheduler:
                     continue
 
                 # Check that repo is defined and primary branch is defined
-                repo_cfg = ProjectRepoConfig.from_loaded_json(self.__client, project)
+                repo_cfg = await ProjectRepoConfig.from_loaded_json(self.__client, project)
                 if (await repo_cfg.repo_url) is not None and (await repo_cfg.primary_branch) is not None:
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:

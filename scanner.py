@@ -27,22 +27,24 @@ async def should_scan(client : CxOneClient, project_repo : ProjectRepoConfig, br
     else:
         # It currently isn't possible to tag a scan created in a project that was import from SCM, so just look
         # at the last scan in status Queued or Running.
-        potential_running_scan = json_on_ok(await client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Running"))
-        potential_queued_scan = json_on_ok(await client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Queued"))
+        potential_running_scan, potential_queued_scan = await asyncio.gather(
+            client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Running"), 
+            client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Queued")
+            )
 
-        if project_repo.project_id in potential_running_scan.keys() or project_repo.project_id in potential_queued_scan.keys():
+        if not (project_repo.project_id in json_on_ok(potential_running_scan).keys() or project_repo.project_id in json_on_ok(potential_queued_scan).keys()):
             return True
 
     return False
 
 
+async def create_name(project_name, project_id, repo_url, branch):
+    return f"{project_name}:{project_id}:{repo_url}:{branch}"
+
 async def main():
     try:
         args = parser.parse_args()
-
-        if args.is_imported and (args.scm_id is None or args.scm_org is None):
-            raise Exception("The SCM id and scm org are required to start a scan for an imported project.")
-        
+       
         tenant, oauth_id, oauth_secret = utils.load_secrets()
         assert not tenant is None
         assert not oauth_id is None
@@ -81,12 +83,12 @@ async def main():
                     scan_response = await ScanInvoker.scan_get_response(client, project_repo, args.branch, args.engines, tag)
 
                     if scan_response.ok:
-                        __log.info(f"Scanning project {args.projectid} branch {args.branch}")
+                        __log.info(f"Scanning {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}")
                     else:
-                        __log.error(f"Failed to start scan for project {args.projectid} branch {args.branch}: {scan_response.status_code}:{scan_response.json()}")
+                        __log.error(f"Failed to start scan for project {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}: {scan_response.status_code}:{scan_response.json()}")
 
                 else:
-                    __log.warning(f"Scheduled scan for project {args.projectid} branch {args.branch} is already running, skipping.")
+                    __log.warning(f"Scheduled scan for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)} is already running, skipping.")
 
             except Exception as ex:
                 __log.exception(ex)
@@ -95,7 +97,7 @@ async def main():
 
 
         except BusyError:
-            __log.debug(f"Another process is handling scans for projectid {args.projectid} branch {args.branch}, skipping.")
+            __log.debug(f"Another process is handling scans for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}, skipping.")
         finally:
             sem.close()
 
