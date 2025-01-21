@@ -27,8 +27,6 @@ RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
 COPY *.py entrypoint.sh *.json /opt/cxone/
 COPY logic /opt/cxone/logic
 COPY utils /opt/cxone/utils
-COPY cxone_api /opt/cxone/cxone_api
-
 
 RUN ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
