@@ -1,8 +1,8 @@
 FROM ubuntu:24.04
-LABEL org.opencontainers.image.source https://github.com/checkmarx-ts/cxone-scan-scheduler
-LABEL org.opencontainers.image.vendor Checkmarx Professional Services
-LABEL org.opencontainers.image.title Checkmarx One Scan Scheduler
-LABEL org.opencontainers.image.description Schedules scans for projects in Checkmarx One
+LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-scan-scheduler"
+LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
+LABEL org.opencontainers.image.title="Checkmarx One Scan Scheduler"
+LABEL org.opencontainers.image.description="Schedules scans for projects in Checkmarx One"
 
 USER root
 
