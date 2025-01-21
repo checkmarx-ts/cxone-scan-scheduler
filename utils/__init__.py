@@ -1,4 +1,4 @@
-import logging, hashlib, logging.config
+import logging, hashlib, logging.config, glob
 import os, re, logging, json
 from pathlib import Path
 from cron_validator import CronValidator
@@ -117,6 +117,9 @@ def make_safe_name(projectid, branch):
 def make_schedule_filename(index, projectid, branch):
     return f"{make_safe_name(projectid, branch)}_{index:04}"
 
+def make_schedule_delete_fileglob(projectid):
+    return f"{projectid}_*"
+
 def write_cron_file(index, cron_schedule, projectid, branch, repo_url, engines, cron_path="/etc/cron.d"):
     engine_args = " ".join([f"-e {x}" for x in engines])
     filename = Path(cron_path) / make_schedule_filename(index, projectid, branch)
@@ -137,17 +140,13 @@ def write_schedule(schedule):
             index = index + 1
 
 def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
-    for k in schedule.keys():
-        index = 0
-        for sched in schedule[k]:
-            filename = Path(cron_path) / make_schedule_filename(index, sched.project_id, sched.branch)
+    for proj_id in schedule.keys():
+        for filename in glob.glob(str(Path(cron_path) / make_schedule_delete_fileglob(proj_id))):
             logger().debug(f"Removing cron file: {filename}")
             try:
                 os.remove(filename)
             except FileNotFoundError as fnf:
                 logger().exception(fnf)
-            
-            index = index + 1
 
 
 class ScheduleString:

@@ -10,7 +10,8 @@ else:
     utils.configure_normal_logging()
 
 import asyncio, aiofiles, time
-from cxone_api import CxOneClient, paged_api, CommunicationException
+from cxone_api import CxOneClient
+from cxone_api.exceptions import CommunicationException
 from logic import Scheduler
 
 

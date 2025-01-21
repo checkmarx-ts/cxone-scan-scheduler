@@ -1,29 +1,12 @@
 import logging, asyncio, utils
-from cxone_api import paged_api
-from cxone_api.projects import ProjectRepoConfig
+from cxone_api.util import page_generator, json_on_ok
+from cxone_api.high.projects import ProjectRepoConfig
+from cxone_api.high.access_mgmt.user_mgmt import Groups
+from cxone_api.low.projects import retrieve_list_of_projects
+from cxone_api.low.iam import retrieve_groups
 
 class Scheduler:
     __log = logging.getLogger("Scheduler")
-
-
-    @staticmethod
-    async def __recursive_index_build(tree):
-        by_gid = {}
-        by_path = {}
-        for item in tree:
-            by_gid[item['id']] = item['path']
-            by_path[item['path']] = item['id']
-            child_by_gid, child_by_path = await Scheduler.__recursive_index_build(item['subGroups'])
-            by_gid = by_gid | child_by_gid
-            by_path = by_path | child_by_path
-        
-        return by_gid, by_path
-
-
-    async def __get_group_index(self):
-        group_json = (await self.__client.get_groups(briefRepresentation=True)).json()
-        return await Scheduler.__recursive_index_build(group_json)
-
 
     async def __get_schedule_entry_from_tag(self, project_data, schedule_tag_value, bad_cb):
         if schedule_tag_value is None or len(schedule_tag_value) == 0:
@@ -31,7 +14,7 @@ class Scheduler:
                 bad_cb(project_data['id'], "No schedule tag value.")
             return None
         
-        repo_details = await ProjectRepoConfig.from_loaded_json(self.__client, project_data)
+        repo_details = await ProjectRepoConfig.from_project_json(self.__client, project_data)
         
         elements = schedule_tag_value.split(":")
 
@@ -80,7 +63,7 @@ class Scheduler:
     async def __get_tagged_project_schedule(self, bad_cb):
         Scheduler.__log.debug("Begin: Load tagged project schedule")
         schedules = {}
-        async for tagged_project in paged_api(self.__client.get_projects, "projects", tags_keys="schedule"):
+        async for tagged_project in page_generator(retrieve_list_of_projects, "projects", client=self.__client,tags_keys="schedule"):
             entry = await self.__get_schedule_entry_from_tag(tagged_project, tagged_project['tags']['schedule'], bad_cb)
             if entry is not None:
                 schedules.update(entry)
@@ -96,11 +79,9 @@ class Scheduler:
         if not self.__group_schedules.empty or self.__default_schedule is not None:
             Scheduler.__log.debug("Begin: Load untagged project schedule")
 
-            by_gid = {}
-            if not self.__group_schedules.empty:
-                by_gid, _ = await self.__get_group_index()
+            group_index = Groups(self.__client)
 
-            async for project in paged_api(self.__client.get_projects, "projects"):
+            async for project in page_generator(retrieve_list_of_projects, "projects", client=self.__client):
                 project_schedules = []
 
                 # The schedule tag takes precedence
@@ -108,13 +89,14 @@ class Scheduler:
                     continue
 
                 # Check that repo is defined and primary branch is defined
-                repo_cfg = await ProjectRepoConfig.from_loaded_json(self.__client, project)
+                repo_cfg = await ProjectRepoConfig.from_project_json(self.__client, project)
                 if (await repo_cfg.repo_url is not None) and (await repo_cfg.primary_branch is not None):
                     # If the project matches a group, assign it the schedule for all matching groups.
                     for gid in project['groups']:
-                        if len(by_gid.keys()) > 0:
-                            group_path = by_gid[gid]
-                            ss = self.__group_schedules.get_schedule(group_path)
+                        g_desc = await group_index.get_by_id(gid)
+
+                        if g_desc is not None:
+                            ss = self.__group_schedules.get_schedule(str(g_desc.path))
                         
                             if ss is not None:
                                 project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
@@ -128,7 +110,7 @@ class Scheduler:
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
                                                                                 await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url)]
                 else:
-                    if self.__default_schedule is not None:
+                    if self.__default_schedule is not None and bad_cb is not None:
                         bad_cb(project['id'], f"Project [{project['name']}] has a misconfigured repo url or primary branch.")
 
             Scheduler.__log.debug("End: Load untagged project schedule")

@@ -16,13 +16,15 @@ RUN apt-get update && \
 
 
 WORKDIR /opt/cxone
-COPY *.txt /opt/cxone
+COPY *.txt *.whl /opt/cxone
 
 RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     apt-get remove -y perl && \
     apt-get autoremove -y && \
     apt-get clean && \
     dpkg --purge $(dpkg --get-selections | grep deinstall | cut -f1)
+
+RUN [ -f *.whl ] && pip install --no-cache-dir --break-system-packages *.whl || :
 
 COPY *.py entrypoint.sh *.json /opt/cxone/
 COPY logic /opt/cxone/logic
