@@ -128,7 +128,8 @@ class Scheduler:
                             result[project['id']] = [utils.ProjectSchedule(project['id'], ss.get_crontab_schedule(), 
                                                                                 await repo_cfg.primary_branch, utils.normalize_selected_engines_from_tag('all'), await repo_cfg.repo_url)]
                 else:
-                    Scheduler.__log.warning(f"Project {project['id']}:{project['name']} has a misconfigured repo url or primary branch, not scheduled.")
+                    if self.__default_schedule is not None:
+                        bad_cb(project['id'], f"Project [{project['name']}] has a misconfigured repo url or primary branch.")
 
             Scheduler.__log.debug("End: Load untagged project schedule")
         else:
@@ -208,9 +209,13 @@ class Scheduler:
     async def __initialize(client, default_schedule, group_schedules, policies):
         ret_sched = Scheduler()
         ret_sched.__client = client
-        ret_sched.__default_schedule = default_schedule
         ret_sched.__group_schedules = group_schedules
         ret_sched.__policies = policies
+        if default_schedule is not None and default_schedule in ret_sched.__policies.keys():
+            ret_sched.__default_schedule = default_schedule
+        else:
+            ret_sched.__default_schedule = None
+            Scheduler.__log.error(f"Default schedule [{default_schedule}] is not a valid policy.")
 
         return ret_sched
     
