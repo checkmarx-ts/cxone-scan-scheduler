@@ -2,7 +2,7 @@
 import sys, os, logging, utils
 
 if sys.argv[0].lower().startswith("audit") or \
-    (sys.argv[1] is not None and sys.argv[1].lower().startswith("audit")):
+    (len (sys.argv) > 1 and sys.argv[1] is not None and sys.argv[1].lower().startswith("audit")):
     is_audit = True
     utils.configure_audit_logging()
 else:
