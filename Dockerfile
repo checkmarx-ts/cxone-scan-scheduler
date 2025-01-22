@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 
 WORKDIR /opt/cxone
-COPY *.txt *.whl /opt/cxone
+COPY *.txt *.whl /opt/cxone/
 
 RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     apt-get remove -y perl && \
