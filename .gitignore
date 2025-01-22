@@ -6,6 +6,8 @@ run/*
 env
 mitm*
 
+**/*.whl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

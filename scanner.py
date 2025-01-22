@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 import logging, argparse, utils, asyncio
 from cxone_api import CxOneClient
-from cxone_api.scanning import ScanInvoker
-from cxone_api.projects import ProjectRepoConfig
+from cxone_api.high.scans import ScanInvoker
+from cxone_api.high.projects import ProjectRepoConfig, retrieve_last_scan
+from cxone_api.low.scans import retrieve_list_of_scans
 from cxone_api.util import json_on_ok
 from posix_ipc import Semaphore, BusyError, O_CREAT
 
@@ -21,15 +22,16 @@ parser.add_argument('--schedule', '-s', action='store', type=str, required=False
 
 async def should_scan(client : CxOneClient, project_repo : ProjectRepoConfig, branch : str) -> bool:
     if not await project_repo.is_scm_imported:
-        running_scans = json_on_ok(await client.get_scans(tags_keys="scheduled", branch=branch, project_id=project_repo.project_id, statuses=['Queued', 'Running']))
+        running_scans = json_on_ok(await retrieve_list_of_scans(client, tags_keys="scheduled", branch=branch, 
+                                                                project_id=project_repo.project_id, statuses=['Queued', 'Running']))
         if int(running_scans['filteredTotalCount']) == 0:
             return True
     else:
         # It currently isn't possible to tag a scan created in a project that was import from SCM, so just look
         # at the last scan in status Queued or Running.
         potential_running_scan, potential_queued_scan = await asyncio.gather(
-            client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Running"), 
-            client.get_projects_last_scan(branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Queued")
+            retrieve_last_scan(client, branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Running"), 
+            retrieve_last_scan(client, branch=branch, limit=1, project_ids=[project_repo.project_id], scan_status="Queued")
             )
 
         if not (project_repo.project_id in json_on_ok(potential_running_scan).keys() or project_repo.project_id in json_on_ok(potential_queued_scan).keys()):

@@ -37,10 +37,9 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.tag }}
 
-      - name: Update version.txt
+      - name: Update version
         run: |
             echo ${{ inputs.tag }} > version.txt
-            echo ${{ inputs.tag }} > cxone_api/version.txt
 
       - name: Build and Push Docker Image
         run: |

@@ -1,11 +1,12 @@
-import logging, hashlib, logging.config
+import logging, hashlib, logging.config, glob
 import os, re, logging, json
 from pathlib import Path
 from cron_validator import CronValidator
 from pathlib import Path
 from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint, CxOneApiEndpoint
 
-__log = logging.getLogger("utils")
+def logger():
+    return logging.getLogger("utils")
 
 def get_log_level():
     return "INFO" if os.getenv('LOG_LEVEL') is None else os.getenv('LOG_LEVEL')
@@ -90,7 +91,7 @@ def load_policies():
             policy_name = k.lower()[len("policy_"):]
             policy_value = os.environ[k]
             if CronValidator.parse(policy_value) is None:
-                __log.error(f"Crontab string [{policy_value}] for policy {policy_name} is invalid, skipping.")
+                logger().error(f"Crontab string [{policy_value}] for policy {policy_name} is invalid, skipping.")
                 continue
 
             normalized_policy_name = policy_name.replace("_", "*").replace("-", "*")
@@ -99,7 +100,7 @@ def load_policies():
                 if name not in policies.keys():
                     policies[name] = policy_value
                 else:
-                    __log.error(f"Policy [{name}] already exists, skipping duplicate definition")
+                    logger().error(f"Policy [{name}] already exists, skipping duplicate definition")
 
             if normalized_policy_name == policy_name:
                 insert_policy(normalized_policy_name)
@@ -115,6 +116,9 @@ def make_safe_name(projectid, branch):
 
 def make_schedule_filename(index, projectid, branch):
     return f"{make_safe_name(projectid, branch)}_{index:04}"
+
+def make_schedule_delete_fileglob(projectid):
+    return f"{projectid}_*"
 
 def write_cron_file(index, cron_schedule, projectid, branch, repo_url, engines, cron_path="/etc/cron.d"):
     engine_args = " ".join([f"-e {x}" for x in engines])
@@ -132,16 +136,17 @@ def write_schedule(schedule):
         index = 0
         for sched in scheds:
             write_cron_file(index, sched.schedule, sched.project_id, sched.branch, sched.repo_url, sched.engines)
-            __log.debug(f"Writing schedule: {sched}")
+            logger().debug(f"Writing schedule: {sched}")
             index = index + 1
 
 def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
-    for k in schedule.keys():
-        index = 0
-        for sched in schedule[k]:
-            filename = Path(cron_path) / make_schedule_filename(index, sched.project_id, sched.branch)
-            __log.debug(f"Removing cron file: {filename}")
-            index = index + 1
+    for proj_id in schedule.keys():
+        for filename in glob.glob(str(Path(cron_path) / make_schedule_delete_fileglob(proj_id))):
+            logger().debug(f"Removing cron file: {filename}")
+            try:
+                os.remove(filename)
+            except FileNotFoundError as fnf:
+                logger().exception(fnf)
 
 
 class ScheduleString:
@@ -253,7 +258,7 @@ def load_group_schedules(policies):
             if ss.is_valid():
                 sched.add_schedule(os.environ[k], ss)
             else:
-                __log.error(f"{k} defines an invalid policy [{os.environ[schedkey]}], skipping.")
+                logger().error(f"{k} defines an invalid policy [{os.environ[schedkey]}], skipping.")
 
     return sched
 
