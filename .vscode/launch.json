@@ -18,6 +18,7 @@
                     "remoteRoot": "."
                 }
             ],
+            "justMyCode": false
         },
         {
             "name": "Python Debugger: Current File",
