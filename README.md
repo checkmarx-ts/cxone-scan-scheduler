@@ -82,6 +82,7 @@ following order of precedence:
 1. The branch defined in the tag.
 2. The branch selected as the `Primary Branch` in the project configuration.
 3. The default branch as defined in the SCM when the project was imported with a code repository integration.
+4. If only one branch is defined as a protected branch when a project was imported with a code repository integration, it is selected as the branch.
 
 If the branch to scan can't be determined, the scan will not be scheduled.
 

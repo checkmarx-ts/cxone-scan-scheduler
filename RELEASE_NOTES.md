@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.4
+* Logic for selecting primary branch updated.  If only one protected branch is defined in the code repository
+import configuration, it is used as the scan branch regardless of if it is considered a default branch by the SCM.
+
 ## v1.3
 
 * Bugfixes
