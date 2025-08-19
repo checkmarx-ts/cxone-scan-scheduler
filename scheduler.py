@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import sys, os, logging, utils
+from __agent__ import __schedagent__
 
 if sys.argv[0].lower().startswith("audit") or \
     (len (sys.argv) > 1 and sys.argv[1] is not None and sys.argv[1].lower().startswith("audit")):
@@ -13,6 +14,9 @@ import asyncio, aiofiles, time
 from cxone_api import CxOneClient
 from cxone_api.exceptions import CommunicationException
 from logic import Scheduler
+from utils import (get_api_timeout_config, 
+                   get_api_retry_delay_config, 
+                   get_api_retries_config)
 
 
 __log = logging.getLogger("scheduler daemon")
@@ -32,14 +36,12 @@ while True:
         ssl_verify = utils.get_ssl_verify()
         proxy = utils.get_proxy_config()
 
-        agent = "CxOneScheduler"
-        version = None
-        with open("version.txt", "rt") as ver:
-            version = ver.readline().strip()
-
-        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, f"{agent}/{version}", auth_endpoint, 
-                            api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
-
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, __schedagent__, auth_endpoint, 
+                            api_endpoint, 
+                            timeout=get_api_timeout_config(),
+                            retries=get_api_retries_config(),
+                            retry_delay_s=get_api_retry_delay_config(),
+                            ssl_verify=ssl_verify, proxy=proxy)
 
         policies = utils.load_policies()
         __log.debug(f"Policies: {policies}")
