@@ -1,6 +1,7 @@
-requests==2.32.3
+requests==2.32.4
 cron-validator==1.0.8
-posix-ipc==1.1.1
+posix-ipc==1.3.0
 aiofiles==24.1.0
 pytest==8.3.4
-https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.6/cxone_api-1.0.6-py3-none-any.whl
+https://github.com/checkmarx-ts/cxone-async-api/releases/download/1.0.9rc17/cxone_api-1.0.9rc17-py3-none-any.whl
+
