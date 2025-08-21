@@ -5,6 +5,8 @@ from cxone_api.high.access_mgmt.user_mgmt import Groups
 from cxone_api.low.projects import retrieve_list_of_projects
 from cxone_api.low.iam import retrieve_groups
 from utils import get_threads_config, normalize_repo_enabled_engines
+from time import perf_counter_ns
+from datetime import timedelta
 
 class Scheduler:
     __log = logging.getLogger("Scheduler")
@@ -62,71 +64,39 @@ class Scheduler:
 
         return None
 
-    async def __get_tagged_project_schedule(self, bad_cb, throttle : asyncio.Semaphore):
-        Scheduler.__log.debug("Begin: Load tagged project schedule")
-        schedules = {}
-        async for tagged_project in page_generator(retrieve_list_of_projects, "projects", client=self.__client,tags_keys="schedule"):
-            async with throttle:
-                entry = await self.__get_schedule_entry_from_tag(tagged_project, tagged_project['tags']['schedule'], bad_cb)
-                if entry is not None:
-                    schedules.update(entry)
-                else:
-                    Scheduler.__log.debug(f"NO SCHEDULE ENTRY: {tagged_project}")
 
-        Scheduler.__log.debug("End: Load tagged project schedule")
-        return schedules
+    async def __get_schedule_entry_no_tag(self, bad_cb, group_index, project_json):
+        project_schedules = []
 
-    async def __get_untagged_project_schedule(self, bad_cb, throttle : asyncio.Semaphore):
-        result = {}
+        # Check that repo is defined and primary branch is defined
+        repo_cfg = await ProjectRepoConfig.from_project_json(self.__client, project_json)
+        if (await repo_cfg.repo_url is not None) and (await repo_cfg.primary_branch is not None):
+            # If the project matches a group, assign it the schedule for all matching groups.
+            for gid in project_json['groups']:
+                g_desc = await group_index.get_by_id(gid)
 
-        if not self.__group_schedules.empty or self.__default_schedule is not None:
-            Scheduler.__log.debug("Begin: Load untagged project schedule")
+                if g_desc is not None:
+                    ss = self.__group_schedules.get_schedule(str(g_desc.path))
+                
+                    if ss is not None:
+                        project_schedules.append(utils.ProjectSchedule(project_json['id'], ss, 
+                            await repo_cfg.primary_branch, 
+                            utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported), 
+                            await repo_cfg.repo_url))
 
-            group_index = Groups(self.__client)
-
-            async for project in page_generator(retrieve_list_of_projects, "projects", client=self.__client):
-                async with throttle:
-                    project_schedules = []
-
-                    # The schedule tag takes precedence
-                    if "schedule" in project['tags'].keys():
-                        continue
-
-                    # Check that repo is defined and primary branch is defined
-                    repo_cfg = await ProjectRepoConfig.from_project_json(self.__client, project)
-                    if (await repo_cfg.repo_url is not None) and (await repo_cfg.primary_branch is not None):
-                        # If the project matches a group, assign it the schedule for all matching groups.
-                        for gid in project['groups']:
-                            g_desc = await group_index.get_by_id(gid)
-
-                            if g_desc is not None:
-                                ss = self.__group_schedules.get_schedule(str(g_desc.path))
-                            
-                                if ss is not None:
-                                    project_schedules.append(utils.ProjectSchedule(project['id'], ss, 
-                                        await repo_cfg.primary_branch, 
-                                        utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported), 
-                                        await repo_cfg.repo_url))
-
-                        if len(project_schedules) > 0:
-                            result[project['id']] = project_schedules
-                        elif self.__default_schedule is not None:
-                            ss = utils.ScheduleString(self.__default_schedule, self.__policies)
-                            if ss.is_valid():
-                                result[project['id']] = [utils.ProjectSchedule(project['id'], 
-                                    ss.get_crontab_schedule(), 
-                                    await repo_cfg.primary_branch, 
-                                    utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported),
-                                    await repo_cfg.repo_url)]
-                    else:
-                        if self.__default_schedule is not None and bad_cb is not None:
-                            bad_cb(project['id'], f"Project [{project['name']}] has a misconfigured repo url or primary branch.")
-
-            Scheduler.__log.debug("End: Load untagged project schedule")
+            if len(project_schedules) > 0:
+                return {project_json['id'] : project_schedules}
+            elif self.__default_schedule is not None:
+                ss = utils.ScheduleString(self.__default_schedule, self.__policies)
+                if ss.is_valid():
+                    return {project_json['id'] : [utils.ProjectSchedule(project_json['id'], 
+                        ss.get_crontab_schedule(), 
+                        await repo_cfg.primary_branch, 
+                        utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported),
+                        await repo_cfg.repo_url)]}
         else:
-            Scheduler.__log.debug("No untagged schedules loaded")
-
-        return result
+            if self.__default_schedule is not None and bad_cb is not None:
+                bad_cb(project_json['id'], f"Project [{project_json['name']}] has a misconfigured repo url or primary branch.")
 
     async def __get_changed_projects(self, new_schedule):
         check_projects = set(new_schedule.keys()) & set(self.__the_schedule.keys())
@@ -183,18 +153,36 @@ class Scheduler:
         
 
     async def __load_schedule(self, bad_cb = None):
+        load_start = perf_counter_ns()
+        Scheduler.__log.debug("Begin: Load project schedule")
+
         throttle = asyncio.Semaphore(get_threads_config())
-        tagged, grouped = await asyncio.gather(self.__get_tagged_project_schedule(bad_cb, throttle), self.__get_untagged_project_schedule(bad_cb, throttle))
 
-        # It is possible that modifications were done to projects while compiling schedules.  If there are intersections,
-        # the tagged project takes precedence.
-        intersection = list(set(tagged.keys()) & set(grouped.keys()) )
+        schedule = {}
+        
+        group_index = Groups(self.__client)
 
-        for k in intersection:
-            grouped.pop(k, None)
+        if not self.__group_schedules.empty or self.__default_schedule is not None:
+            tag_args = {}
+        else:
+            tag_args = {'tags_keys' : 'schedule'}
 
+        async for project in page_generator(retrieve_list_of_projects, "projects", client=self.__client, limit=100, **tag_args):
+            if "schedule" in project['tags'].keys():
+                entry = await self.__get_schedule_entry_from_tag(project, project['tags']['schedule'], bad_cb)
+                if entry is not None:
+                    schedule.update(entry)
+                else:
+                    Scheduler.__log.debug(f"NO SCHEDULE ENTRY: {project}")
+            else:
+                entry = await self.__get_schedule_entry_no_tag(bad_cb, group_index, project)
+                if entry is not None:
+                    schedule.update(entry)
 
-        return tagged | grouped
+        Scheduler.__log.debug("End: Load project schedule")
+        Scheduler.__log.info(f"Schedule load time: {timedelta(microseconds=(perf_counter_ns() - load_start)/1000)}")
+
+        return schedule
 
 
     @staticmethod
