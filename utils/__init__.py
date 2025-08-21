@@ -4,6 +4,7 @@ from pathlib import Path
 from cron_validator import CronValidator
 from pathlib import Path
 from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint, CxOneApiEndpoint
+from typing import List, Dict, Union
 
 def logger():
     return logging.getLogger("utils")
@@ -52,12 +53,17 @@ def load_secrets():
 
     return (tenant, oauth_id, oauth_secret)
 
-def load_schedule_update_delay():
-    if not 'UPDATE_DELAY_SECONDS' in os.environ.keys():
-        return 43200
+def get_int_from_env(var_name : str, min_val : int, default_val : int):
+    if not var_name in os.environ.keys():
+        return default_val
     else:
-        return int(os.environ['UPDATE_DELAY_SECONDS'])
+        try:
+            return max(min_val, int(os.environ[var_name]))
+        except ValueError:
+            return default_val
 
+def load_schedule_update_delay():
+    return get_int_from_env('UPDATE_DELAY_SECONDS', 15, 43200)
 
 def load_region():
     if not 'CXONE_REGION' in os.environ.keys():
@@ -275,11 +281,56 @@ def get_proxy_config():
     else:
         return None
 
-def available_engines():
-    return ['sast', 'kics','sca','apisec']
+def get_threads_config():
+    return get_int_from_env("THREADS", 1, 2)
 
-def normalize_selected_engines_from_tag(engine_string):
-    available = available_engines()
+def get_api_timeout_config():
+    return get_int_from_env("API_TIMEOUT", 10, 60)
+
+def get_api_retries_config():
+    return get_int_from_env("API_RETRIES", 0, 3)
+
+def get_api_retry_delay_config():
+    return get_int_from_env("API_RETRY_DELAY", 5, 30)
+
+
+def micro_engines():
+    return ['2ms', 'scorecard']
+
+def available_engines(include_for_imported : bool):
+    # scorecard is only available for code repository imported projects
+    valid_micro_engines = micro_engines()
+
+    if not include_for_imported:
+        valid_micro_engines.remove('scorecard')
+
+    engines = ['sast', 'kics','sca','apisec', 'containers'] + valid_micro_engines
+    return engines
+
+
+def normalize_repo_enabled_engines(enabled_engines : List[str]):
+    # scorecard has a strange name in the repo config
+    return [x if x != "ossfsecorecard" else "scorecard" for x in enabled_engines]
+
+def create_engine_scan_config(engines : List[str], is_imported : bool) -> Union[List, Dict]:
+    requested_engines = [eng for eng in engines if eng not in micro_engines()]
+    requested_micro_engines = [eng for eng in engines if eng in micro_engines()]
+
+    if not is_imported:
+        cfg = {eng:{} for eng in requested_engines}
+
+        # Scans for microengines are requested this way for some reason
+        if len(requested_micro_engines) > 0:
+            cfg['microengines'] = {eng:'true' if eng in requested_micro_engines else 'false' for eng in micro_engines()}
+
+        return cfg
+    else:
+        return requested_engines + requested_micro_engines
+
+
+
+def normalize_selected_engines_from_tag(engine_string, is_imported : bool):
+    available = available_engines(is_imported)
     result = available if 'all' in engine_string.lower() or len(engine_string) == 0 else []
 
     if len(result) == 0:
@@ -287,7 +338,6 @@ def normalize_selected_engines_from_tag(engine_string):
         for eng in requested:
             if eng in available and not eng in result:
                 result.append(eng)
-
 
     return result if len(result) > 0 else available
 

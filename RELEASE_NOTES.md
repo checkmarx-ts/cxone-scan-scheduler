@@ -1,5 +1,16 @@
 # Release Notes
 
+## v1.5
+* Support for manual projects improved.  If you have a manual project with a configured PAT, repository URL, and branch then the scheduler
+can kick off a scan.  (If the PAT is expired, the scan will fail.)
+* Support for additional engines:
+  * containers
+  * 2ms
+  * scorecard
+* Added throttling to API calls while invoking scans.
+* Added resilience to common network failures.  Retry options can be configured to increase the number of retries before failure.
+
+
 ## v1.4
 * Logic for selecting primary branch updated.  If only one protected branch is defined in the code repository
 import configuration, it is used as the scan branch regardless of if it is considered a default branch by the SCM.

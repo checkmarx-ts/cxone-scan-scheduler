@@ -1,11 +1,18 @@
 #!/usr/bin/python3
 import logging, argparse, utils, asyncio
+from __agent__ import __scanagent__
 from cxone_api import CxOneClient
 from cxone_api.high.scans import ScanInvoker
 from cxone_api.high.projects import ProjectRepoConfig, retrieve_last_scan
 from cxone_api.low.scans import retrieve_list_of_scans
 from cxone_api.util import json_on_ok
 from posix_ipc import Semaphore, BusyError, O_CREAT
+from utils import (create_engine_scan_config, 
+                   get_threads_config, 
+                   get_api_timeout_config, 
+                   get_api_retry_delay_config, 
+                   get_api_retries_config)
+from time import perf_counter_ns
 
 utils.configure_normal_logging()
 __log = logging.getLogger("scan executor")
@@ -45,64 +52,68 @@ async def create_name(project_name, project_id, repo_url, branch):
 
 async def main():
     try:
-        args = parser.parse_args()
-       
-        tenant, oauth_id, oauth_secret = utils.load_secrets()
-        assert not tenant is None
-        assert not oauth_id is None
-        assert not oauth_secret is None
+        wait_start = perf_counter_ns()
+        with Semaphore(f"/cxone_scan", flags=O_CREAT, initial_value=get_threads_config()):
+            args = parser.parse_args()
 
-        auth_endpoint, api_endpoint = utils.load_endpoints(tenant)
-        assert auth_endpoint is not None and api_endpoint is not None
-
-
-        ssl_verify = utils.get_ssl_verify()
-        proxy = utils.get_proxy_config()
-
-        agent = "CxCron"
-        version = None
-        with open("version.txt", "rt") as ver:
-            version = ver.readline().strip()
-
-        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, f"{agent}/{version}", auth_endpoint, 
-                            api_endpoint, ssl_verify=ssl_verify, proxy=proxy)
+            __log.debug(f"Project {args.projectid} waited {(perf_counter_ns() - wait_start)/1000000:.2f}ms for other cron scripts to complete.")
         
+            tenant, oauth_id, oauth_secret = utils.load_secrets()
+            assert not tenant is None
+            assert not oauth_id is None
+            assert not oauth_secret is None
 
-        tag = {"scheduled": args.schedule} if args.schedule is not None else {"scheduled" : None}
+            auth_endpoint, api_endpoint = utils.load_endpoints(tenant)
+            assert auth_endpoint is not None and api_endpoint is not None
 
-        try:
-            sem = Semaphore(f"/{utils.make_safe_name(args.projectid, args.branch)}", flags=O_CREAT, initial_value=1)
-            sem.acquire(1)
+
+            ssl_verify = utils.get_ssl_verify()
+            proxy = utils.get_proxy_config()
+
+            client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, __scanagent__, auth_endpoint, 
+                                api_endpoint, 
+                                timeout=get_api_timeout_config(),
+                                retries=get_api_retries_config(),
+                                retry_delay_s=get_api_retry_delay_config(),
+                                ssl_verify=ssl_verify, proxy=proxy)
+            
+
+            tag = {"scheduled": args.schedule} if args.schedule is not None else {"scheduled" : None}
 
             try:
-                __log.debug(f"Semaphore acquired for {utils.make_safe_name(args.projectid, args.branch)}")
-                
-                project_repo = await ProjectRepoConfig.from_project_id(client, args.projectid)
+                sem = Semaphore(f"/{utils.make_safe_name(args.projectid, args.branch)}", flags=O_CREAT, initial_value=1)
+                sem.acquire(1)
 
-                # Do not submit a scheduled scan if a scheduled scan is already running.
-                if await should_scan(client, project_repo, args.branch):
+                try:
+                    __log.debug(f"Semaphore acquired for {utils.make_safe_name(args.projectid, args.branch)}")
+                    
+                    project_repo = await ProjectRepoConfig.from_project_id(client, args.projectid)
 
-                    scan_response = await ScanInvoker.scan_get_response(client, project_repo, args.branch, args.engines, tag)
+                    # Do not submit a scheduled scan if a scheduled scan is already running.
+                    if await should_scan(client, project_repo, args.branch):
 
-                    if scan_response.ok:
-                        __log.info(f"Scanning {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}")
+                        scan_response = await ScanInvoker.scan_get_response(client, project_repo, args.branch,
+                                                                            create_engine_scan_config(args.engines, 
+                                                                            await project_repo.is_scm_imported), tag)
+
+                        if scan_response.ok:
+                            __log.info(f"Scanning {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}")
+                        else:
+                            __log.error(f"Failed to start scan for project {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}: {scan_response.status_code}:{scan_response.json()}")
+
                     else:
-                        __log.error(f"Failed to start scan for project {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}: {scan_response.status_code}:{scan_response.json()}")
+                        __log.warning(f"Scheduled scan for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)} is already running, skipping.")
 
-                else:
-                    __log.warning(f"Scheduled scan for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)} is already running, skipping.")
+                except Exception as ex:
+                    __log.exception(ex)
+                finally:
+                    sem.release()
 
-            except Exception as ex:
-                __log.exception(ex)
+
+            except BusyError:
+                __log.debug(f"Another process is handling scans for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}, skipping.")
             finally:
-                sem.release()
-
-
-        except BusyError:
-            __log.debug(f"Another process is handling scans for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}, skipping.")
-        finally:
-            sem.close()
-
+                sem.close()
     except SystemExit:
         pass
 

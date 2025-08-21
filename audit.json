@@ -3,7 +3,13 @@
 	"handlers": {
 		"null": {
 			"class": "logging.NullHandler"
+		},
+		"console": {
+			"class": "logging.StreamHandler",
+			"formatter": "default",
+			"stream": "ext://sys.stdout"
 		}
+
 	},
 	"formatters": {
 		"default": {
@@ -15,6 +21,10 @@
 		"root": {
 			"handlers": ["null"],
 			"level": "INFO"
+		},
+		"audit": {
+			"handlers": ["console"],
+			"level": "ERROR"
 		}
 	}
 }
