@@ -39,7 +39,7 @@ jobs:
 
       - name: Update version
         run: |
-            echo __version__='${{ inputs.tag }}' > __version__.py
+            echo "__version__='${{ inputs.tag }}'" > __version__.py
 
       - name: Build and Push Docker Image
         run: |
