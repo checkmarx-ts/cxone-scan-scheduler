@@ -7,7 +7,8 @@ can kick off a scan.  (If the PAT is expired, the scan will fail.)
   * containers
   * 2ms
   * scorecard
-* Added throttling to API calls while compiling the schedule and invoking scans.
+* Added throttling to API calls while invoking scans.
+* Added resilience to common network failures.  Retry options can be configured to increase the number of retries before failure.
 
 
 ## v1.4
