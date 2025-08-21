@@ -291,7 +291,7 @@ def get_api_retries_config():
     return get_int_from_env("API_RETRIES", 0, 3)
 
 def get_api_retry_delay_config():
-    return get_int_from_env("API_RETRY_DELAY", 0, 3)
+    return get_int_from_env("API_RETRY_DELAY", 5, 30)
 
 
 def micro_engines():
