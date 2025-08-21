@@ -103,9 +103,10 @@ while True:
 
         if is_audit:
             try:
+                audit_log = logging.getLogger("audit")
                 asyncio.run(audit())
-            except Exception as ex:
-                __log.exception(ex)
+            except BaseException as ex:
+                audit_log.exception(ex)
             finally:
                 break
         else:
