@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.6
+* Added better handling when the SCM credentials expire for a code repository import project.
+
 ## v1.5
 * Support for manual projects improved.  If you have a manual project with a configured PAT, repository URL, and branch then the scheduler
 can kick off a scan.  (If the PAT is expired, the scan will fail.)
