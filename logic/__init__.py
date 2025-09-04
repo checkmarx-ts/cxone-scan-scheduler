@@ -18,6 +18,11 @@ class Scheduler:
             return None
         
         repo_details = await ProjectRepoConfig.from_project_json(self.__client, project_data)
+
+        if await repo_details.is_scm_imported and await repo_details.scm_creds_expired:
+            if bad_cb is not None:
+                bad_cb(project_data['id'], "Imported repository credentials have expired.")
+            return None
         
         elements = schedule_tag_value.split(":")
 
