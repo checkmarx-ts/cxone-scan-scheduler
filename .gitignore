@@ -5,6 +5,7 @@ run/*
 **/cxone_tenant
 env
 mitm*
+*.csv
 
 **/*.whl
 
