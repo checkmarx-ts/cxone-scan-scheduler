@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.7
+* Fixed an issue causing the scheduler to not start due to a Checkmarx One breaking API change when retrieving groups.
+* Fixed an issue causing code repository import projects to not be scheduled due to a Checkmarx One breaking API change
+  when retrieving code repository details.
+
 ## v1.6
 * Added better handling when the SCM credentials expire for a code repository import project.
 
@@ -12,7 +17,6 @@ can kick off a scan.  (If the PAT is expired, the scan will fail.)
   * scorecard
 * Added throttling to API calls while invoking scans.
 * Added resilience to common network failures.  Retry options can be configured to increase the number of retries before failure.
-
 
 ## v1.4
 * Logic for selecting primary branch updated.  If only one protected branch is defined in the code repository
