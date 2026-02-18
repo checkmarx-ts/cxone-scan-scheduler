@@ -257,7 +257,9 @@ The following runtime environment variables are required to configure the system
 |`UPDATE_DELAY_SECONDS`| 43200 | The number of seconds to delay between checking for updates in the schedule.|
 |`POLICY_<name>`|N/A| Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
 |`TIMEZONE`| Etc/UTC | The [zoneinfo](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) string for the timezone.  If the zoneinfo string is invalid or not set, the timezone will default to UTC.|
-|`THREADS`| 2 | Set to an integer value > 0 to increase the number of threads used when starting scans.
+|`THREADS`| 2 | Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.
+|`FETCH_THROTTLE`| False | Set to `True` to wait for the source code clone to complete before submitting another scan.
+|`FETCH_WAIT_SECONDS`| 300 | The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.
 |`API_TIMEOUT` | 60 | Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.
 |`API_RETRIES`| 3 | The number of times communicating with the Checkmarx One API will retry upon failure.
 |`API_RETRY_DELAY`| 15 | The maximum number of seconds to wait before retrying a failure Checkmarx One API request.
