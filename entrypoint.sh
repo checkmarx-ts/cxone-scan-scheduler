@@ -17,4 +17,6 @@ fi
 
 service cron start > /dev/null 2>&1
 
+su nobody -c "python3 init_semaphore.py"
+
 python3 "$@"

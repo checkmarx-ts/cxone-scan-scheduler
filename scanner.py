@@ -18,7 +18,6 @@ from utils import (create_engine_scan_config,
                    get_fetch_throttle)
 from time import perf_counter_ns
 from datetime import datetime
-from uuid import uuid4
 from typing import List, Union
 
 __CHECK_DELAY_S = 30
@@ -112,7 +111,7 @@ async def check_source_fetch_complete(client : CxOneClient, scanid : str) -> boo
 async def main():
     try:
         wait_start = perf_counter_ns()
-        with Semaphore(f"/cxone_scan", flags=O_CREAT, initial_value=get_threads_config()):
+        with Semaphore(f"/cxone_scan"):
             args = parser.parse_args()
 
             __log.debug(f"Project {args.projectid} waited {(perf_counter_ns() - wait_start)/1000000:.2f}ms to acquire a scan submit thread.")
