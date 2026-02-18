@@ -135,7 +135,7 @@ async def main():
 
             try:
                 sem = Semaphore(f"/{utils.make_safe_name(args.projectid, args.branch)}", flags=O_CREAT, initial_value=1)
-                sem.acquire(1)
+                sem.acquire(0)
 
                 client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, __scanagent__, auth_endpoint, 
                                     api_endpoint, 
@@ -203,10 +203,8 @@ async def main():
                     __log.exception(ex)
                 finally:
                     sem.release()
-
-
             except BusyError:
-                __log.debug(f"Another process is handling scans for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}, skipping.")
+                __log.debug(f"Another process is handling scans for project id {args.projectid}, skipping.")
             finally:
                 sem.close()
     except SystemExit:
