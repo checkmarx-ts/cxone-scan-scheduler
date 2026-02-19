@@ -293,6 +293,9 @@ def get_fetch_throttle():
 def get_fetch_timeout_config():
     return get_int_from_env("FETCH_WAIT_SECONDS", 0, 300)
 
+def get_recent_scan_hours_config():
+    return get_int_from_env("RECENT_SCAN_HOURS", 0, 0)
+
 def get_api_timeout_config():
     return get_int_from_env("API_TIMEOUT", 10, 60)
 

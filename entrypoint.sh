@@ -11,6 +11,7 @@ echo "export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> /etc/envi
 [ -n "$SSL_VERIFY" ] && echo "export SSL_VERIFY=$SSL_VERIFY" >> /etc/environment
 [ -n "$PROXY" ] && echo "export PROXY=$PROXY" >> /etc/environment
 [ -n "$FETCH_THROTTLE" ] && echo "export FETCH_THROTTLE=$FETCH_THROTTLE" >> /etc/environment
+[ -n "$RECENT_SCAN_HOURS" ] && echo "export RECENT_SCAN_HOURS=$RECENT_SCAN_HOURS" >> /etc/environment
 
 if [ -n "$TIMEZONE" ]; then
     [ -f /usr/share/zoneinfo/$TIMEZONE ] && ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime

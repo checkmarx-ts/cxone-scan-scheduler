@@ -10,14 +10,14 @@ from cxone_api.util import json_on_ok
 from requests import Response
 from posix_ipc import Semaphore, BusyError, O_CREAT
 from utils import (create_engine_scan_config, 
-                   get_threads_config, 
+                   get_recent_scan_hours_config, 
                    get_api_timeout_config, 
                    get_api_retry_delay_config, 
                    get_api_retries_config,
                    get_fetch_timeout_config,
                    get_fetch_throttle)
 from time import perf_counter_ns
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Union
 
 __CHECK_DELAY_S = 30
@@ -42,20 +42,30 @@ async def get_latest_running_scan(client : CxOneClient, projectid : str, branch 
 
 
 async def should_scan(client : CxOneClient, project_repo : ProjectRepoConfig, branch : str) -> bool:
+    running_scan = False
+
     if not await project_repo.is_scm_imported:
         running_scans = json_on_ok(await retrieve_list_of_scans(client, tags_keys="scheduled", branch=branch, 
-                                                                project_id=project_repo.project_id, statuses=['Queued', 'Running']))
-        if int(running_scans['filteredTotalCount']) == 0:
-            return True
+                                                                project_id=project_repo.project_id, limit=1, statuses=['Queued', 'Running']))
+        if int(running_scans['filteredTotalCount']) != 0:
+            running_scan = True
     else:
         # It currently isn't possible to tag a scan created in a project that was import from SCM, so just look
         # at the last scan in status Queued or Running.
         potential_running_scan, potential_queued_scan = await get_latest_running_scan(client, project_repo.project_id, branch)
 
-        if not (project_repo.project_id in json_on_ok(potential_running_scan).keys() or project_repo.project_id in json_on_ok(potential_queued_scan).keys()):
-            return True
+        if project_repo.project_id in json_on_ok(potential_running_scan).keys() or project_repo.project_id in json_on_ok(potential_queued_scan).keys():
+            running_scan = True
+    
+    if not running_scan and get_recent_scan_hours_config() > 0:
+        previous_time = datetime.now(timezone.utc) - timedelta(hours=get_recent_scan_hours_config())
 
-    return False
+        previous_scans = json_on_ok(await retrieve_list_of_scans(client, branch=branch, project_id=project_repo.project_id, 
+                                                                 statuses=['Completed'], limit=1, from_date=previous_time.isoformat()))
+        if int(previous_scans['filteredTotalCount']) != 0:
+            return False
+
+    return not running_scan
 
 
 async def create_name(project_name, project_id, repo_url, branch):
@@ -197,7 +207,7 @@ async def main():
                             __log.error(f"Failed to start scan for project {await create_name(project_repo.name, args.projectid, args.repo, args.branch)}: {scan_response.status_code}:{scan_response.json()}")
 
                     else:
-                        __log.warning(f"Scheduled scan for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)} is already running, skipping.")
+                        __log.warning(f"Scheduled scan for {await create_name(project_repo.name, args.projectid, args.repo, args.branch)} skipped.")
 
                 except Exception as ex:
                     __log.exception(ex)

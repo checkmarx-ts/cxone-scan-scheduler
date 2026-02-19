@@ -260,6 +260,7 @@ The following runtime environment variables are required to configure the system
 |`THREADS`| 2 | Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.
 |`FETCH_THROTTLE`| False | Set to `True` to wait for the source code clone to complete before submitting another scan.
 |`FETCH_WAIT_SECONDS`| 300 | The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.
+|`RECENT_SCAN_HOURS`| 0 | This is used to set a policy of not performing a scheduled scan if a successful scan has been executed with the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed.
 |`API_TIMEOUT` | 60 | Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.
 |`API_RETRIES`| 3 | The number of times communicating with the Checkmarx One API will retry upon failure.
 |`API_RETRY_DELAY`| 15 | The maximum number of seconds to wait before retrying a failure Checkmarx One API request.
@@ -406,22 +407,30 @@ is completed before allowing another concurrent scan submission.  The logic will
 for `FETCH_WAIT_SECONDS` number of seconds before aborting the wait.  This prevents
 very large projects from stopping all concurrent scheduled scan submission.
 
-When using the fetch throttling feature, it is recommended that the number of concurrent threads be no less than 10.
-A thread count that is too low can cause the scan submissions to take longer than the schedule idle period.  This is
-due to the combined wait time of the source fetch monitoring causing scans to not get submitted before the schedule
-triggers again.  If the number of threads combined with the source fetch time does not allow all scan submissions to complete
-before the next scheduled scan time, it is possible that some projects will never see scans due to the random nature of how
-the OS allows threads to become active.
+The use of the fetch throttling feature is recommended only for those Checkmarx One tenants that have licensed
+100 or more concurrent scans.  Source fetching executes only when scans enter the "running" state; for 100
+concurrent scans or less, the amount of time between source fetch operations is likely enough to avoid
+overloading the SCM with concurrent clone operations.  Using a low thread count (such as the default 2) should also
+help to avoid overloading the SCM by slowly adding the scheduled scans.  With a low number of licensed concurrent scans,
+scans in the "queued" state will cause the throttling to wait for the scan to enter the running state before it can
+detect when source fetching is complete.
+
+When using the fetch throttling feature, it is recommended that the number of concurrent threads be no less than 10
+and no more than the number of licensed concurrent scans.  A thread count that is too low and/or a licensed concurrent
+scan count that is too low can cause the scan submissions to take longer than the schedule idle period. If the throttling
+does not allow all scan submissions to complete before the next scheduled scan time, it is possible that some projects will
+never see scans due to the random nature of how the OS allows threads to become active.
 
 If the fetch throttling is causing all scheduled scans to not get submitted before the next schedule triggers, there
-are a few options:
+are a few options to try:
 
+* Use the `RECENT_SCAN_HOURS` feature to skip scans for projects that have at least one scan in the defined hours previous to the scheduled scan.
 * Increase the number of concurrent scan threads so that more source fetch operations operate in parallel.
-* Use multiple schedules to spread the scan activity to multiple schedule windows.  Scheduling via group assignments is an effective way
-to do this without needing to assign tags to a large number of projects.
+* Use multiple schedules to spread the scan activity to multiple schedule windows.
+* Increase the licensed number of concurrent scans for your tenant.
 
-If the scan scheduler throttling options are not enough to alleviate load on your SCM, this is a sign
-that you may need to scale your SCM to meet your scan scheduling requirements.
+If throttling of scheduled scans does not allow a scan throughput higher than the incoming rate of scan requests, this may be
+a sign that your SCM may need to be scaled to increase concurrent clone capacity.
 
 ### Scheduling Controls via Group Membership
 
