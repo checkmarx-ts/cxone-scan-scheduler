@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cxone-scan-scheduler-deployment
+  labels:
+    app: cxone-scan-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cxone-scan-scheduler
+  template:
+    metadata:
+      labels:
+        app: cxone-scan-scheduler
+      name: cxone-scan-scheduler-container
+    spec:
+
+    {{- include "secrets.volumes" . | nindent 5}}
+
+     containers:
+      {{- include "scheduler.container" . | nindent 7}}

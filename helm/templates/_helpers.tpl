@@ -1,0 +1,155 @@
+{{- define "secrets.volumes" -}}
+volumes:
+  - name: scheduler-secret-tenant-volume
+    secret:
+      secretName: {{ .Values.cxone.secrets_name }}
+      items:
+        - key: cxone_tenant
+          path: cxone_tenant
+
+  - name: scheduler-secret-oauth-client-id-volume
+    secret:
+      secretName: {{ .Values.cxone.secrets_name }}
+      items:
+        - key: cxone_oauth_client_id
+          path: cxone_oauth_client_id
+
+  - name: scheduler-secret-oauth-client-secret-volume
+    secret:
+      secretName: {{ .Values.cxone.secrets_name }}
+      items:
+        - key: cxone_oauth_client_secret
+          path: cxone_oauth_client_secret
+{{- end -}}
+
+{{- define "scheduler.container" -}}
+- name: cxone-scan-scheduler
+  image: ghcr.io/checkmarx-ts/cxone/scan-scheduler:{{ .Chart.AppVersion }}
+  volumeMounts:
+    - name: scheduler-secret-tenant-volume
+      mountPath: "/run/secrets/cxone_tenant"
+      subPath: cxone_tenant
+    - name: scheduler-secret-oauth-client-id-volume
+      mountPath: "/run/secrets/cxone_oauth_client_id"
+      subPath: cxone_oauth_client_id
+    - name: scheduler-secret-oauth-client-secret-volume
+      mountPath: "/run/secrets/cxone_oauth_client_secret"
+      subPath: cxone_oauth_client_secret
+  env:
+    {{- with .Values.cxone.connection }}
+
+      {{- with .multitenant }}
+        {{- with .region }}
+
+          {{- if not (empty .) }}
+    - name: CXONE_REGION
+      value: {{ . }}
+          {{- end -}}
+
+        {{- end -}}
+      {{- end -}}
+
+
+      {{- with .singletenant }}
+        {{- with .auth_server }}
+    - name: SINGLE_TENANT_AUTH
+      value: {{ . }}        
+        {{- end -}}
+        {{- with .api_server }}
+    - name: SINGLE_TENANT_API
+      value: {{ . }}        
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+
+    {{- with .Values.cxone.policies}}
+      {{- range $key := keys . }}
+    - name: POLICY_{{ $key | upper }}
+      value: {{ index $.Values.cxone.policies $key | quote }}
+      {{- end -}}
+    {{- end -}}
+
+    {{- with .Values.cxone.operation}}
+
+      {{- if (not (empty .log_level) )}}
+    - name: LOG_LEVEL
+      value: {{ .log_level | upper}}
+      {{- end -}}
+
+      {{- if (not (empty .default_schedule) )}}
+    - name: DEFAULT_SCHEDULE
+      value: {{ .default_schedule | lower}}
+      {{- end -}}
+
+      {{- if (not (quote .ssl_verify | empty) )}}
+    - name: SSL_VERIFY
+      value: {{ .ssl_verify | toString | title | quote }}
+      {{- end -}}
+
+      {{- if (not (empty .proxy_url) )}}
+    - name: PROXY
+      value: {{ .proxy_url}}
+      {{- end -}}
+
+      {{- if (not (empty .schedule_update_seconds) )}}
+    - name: UPDATE_DELAY_SECONDS
+      value: {{ .schedule_update_seconds | quote}}
+      {{- end -}}
+
+      {{- if (not (empty .timezone) )}}
+    - name: TIMEZONE
+      value: {{ .timezone}}
+      {{- end -}}
+
+      {{- if (not (empty .threads) )}}
+    - name: THREADS
+      value: {{ .threads | quote}}
+      {{- end -}}
+
+      {{- if (not (empty .api.timeout) )}}
+    - name: API_TIMEOUT
+      value: {{ .api.timeout | quote}}
+      {{- end -}}
+
+      {{- if (not (empty .api.retries) )}}
+    - name: API_RETRIES
+      value: {{ .api.retries | quote}}
+      {{- end -}}
+
+      {{- if (not (empty .api.delay) )}}
+    - name: API_RETRY_DELAY
+      value: {{ .api.delay | quote}}
+      {{- end -}}
+
+
+    {{- end -}}
+
+    {{- with .Values.cxone.throttle}}
+
+      {{- if (not (quote .fetch | empty) )}}
+    - name: FETCH_THROTTLE
+      value: {{ .fetch | toString | title | quote }}
+      {{- end -}}
+
+      {{- if (not (quote .timeout | empty) )}}
+    - name: FETCH_WAIT_SECONDS
+      value: {{ .timeout | quote}}
+      {{- end -}}
+
+      {{- if (not (quote .recent_scan_hours | empty) )}}
+    - name: RECENT_SCAN_HOURS
+      value: {{ .recent_scan_hours | quote}}
+      {{- end -}}
+    
+    {{- end -}}
+
+    {{- with .Values.cxone.groups}}
+      {{- range $key := keys . }}
+    - name: GROUP_{{ $key | upper }}
+      value: {{ (index $.Values.cxone.groups $key).path | quote }}
+    - name: SCHEDULE_{{ $key | upper }}
+      value: {{ (index $.Values.cxone.groups $key).policy | lower | quote }}
+      {{- end -}}
+    {{- end -}}
+
+{{- end -}}

@@ -1,0 +1,62 @@
+# You can set the values in this file, a local copy of this file, or as part of the command
+# line when you install it from helm.  In general, the only required setup items are:
+# 
+# * A Checkmarx One connection setting
+# * The name of the generic secret you have set with the required Checkmarx One credentials
+# * At least one schedule policy
+# 
+# Most other options can be left blank or configured to tune
+# how the scheduler operates.
+cxone:
+  # Provide the name of the generic secret containing the key/value pairs
+  # with these keys:
+  # cxone_tenant
+  # cxone_oauth_client_id
+  # cxone_oauth_client_secret
+  secrets_name: cxone-scan-scheduler-secrets
+  connection:
+    # Use only one: multitenant or singletenant
+    # If both are used, the single-tenant configuration is ignored.
+    # multitenant:
+      # Use a valid multi-tenant region moniker (US, US2, EU, EU2, DEU, ANZ, India, Singapore, or UAE)
+      # region: US
+    # singletenant:
+    # Use the FQDN host name of your single-tenant instance.
+    #   auth_server: ast.checkmarx.net
+    #   api_server: ast.checkmarx.net
+  policies:
+    # Add elements with desired policy names and the schedule crontab string.
+    # These are example policies.
+    # debug: "* * * * *"
+    # weekly: "0 0 * * SUN"
+    # monthly: "0 0 1 * *"
+  operation:
+    # Leave blank for default values.
+    # See the README.md file for more information.
+    default_schedule:
+    log_level:
+    ssl_verify:
+    proxy_url:
+    schedule_update_seconds:
+    timezone:
+    threads:
+    api:
+      timeout:
+      retries:
+      delay:
+  throttle:
+    # Leave blank for no source fetch throttling or default values.
+
+    # Set to true to wait for source fetch to complete before
+    # submitting another scan.
+    fetch:
+
+    # Set to the number of seconds to wait for the source
+    # fetch to complete before submitting another scan.
+    timeout:
+
+    # Set to the number of hours prior to a scan's scheduled
+    # time where a complete scan will cause the scheduled
+    # scan to skip.
+    recent_scan_hours:
+  groups:
