@@ -55,11 +55,19 @@ jobs:
       - name: Make release text
         run: |
           echo "# CxOne Scan Scheduler ${{ inputs.tag }}" > release.md
-          echo Executable artifacts are published in a container. >> release.md
+          echo Executable artifacts are published in a container that can be pulled locally and executed. >> release.md
           echo '```' >> release.md
           [ ${{ inputs.prerelease }} = false ] && echo "docker pull $DOCKER_REPO:latest" >> release.md || :
           echo "docker pull $DOCKER_REPO:${{ inputs.tag }}" >> release.md
           echo '```' >> release.md
+          echo >> release.md
+          echo "A Helm chart is also available as part of the release artifacts." >> release.md
+      - name: Make Helm tgz
+        run: |
+          cat helm/Chart.yaml | sed -E "s/(appVersion:) \"DEV\"/\1 \"${{ inputs.tag}}\"/g" > helm/Chart.yaml.tmp
+          rm helm/Chart.yaml
+          mv helm/Chart.yaml.tmp helm/Chart.yaml
+          tar -C ./helm -czf ../cxone-scan-scheduler_helm.tgz
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5
@@ -70,6 +78,7 @@ jobs:
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
           tag: ${{ inputs.tag }}
+          artifacts: *.tgz
 
 
          
