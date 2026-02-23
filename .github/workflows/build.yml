@@ -78,7 +78,7 @@ jobs:
           name: ${{ inputs.tag }}
           prerelease: ${{ inputs.prerelease }}
           tag: ${{ inputs.tag }}
-          artifacts: *.tgz
+          artifacts: "*.tgz"
 
 
          
