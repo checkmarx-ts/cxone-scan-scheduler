@@ -1,9 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: checkmarx
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cxone-scan-scheduler-deployment
   labels:
     app: cxone-scan-scheduler
+  namespace: checkmarx
 spec:
   replicas: 1
   selector:
