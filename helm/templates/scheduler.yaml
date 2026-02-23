@@ -21,6 +21,7 @@ spec:
         app: cxone-scan-scheduler
       name: cxone-scan-scheduler-container
     spec:
+     automountServiceAccountToken: false
 
     {{- include "secrets.volumes" . | nindent 5}}
 

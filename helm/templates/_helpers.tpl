@@ -25,6 +25,8 @@ volumes:
 {{- define "scheduler.container" -}}
 - name: cxone-scan-scheduler
   image: ghcr.io/checkmarx-ts/cxone/scan-scheduler:{{ .Chart.AppVersion }}
+  securityContext:
+    allowPrivilegeEscalation: false  
   volumeMounts:
     - name: scheduler-secret-tenant-volume
       mountPath: "/run/secrets/cxone_tenant"
