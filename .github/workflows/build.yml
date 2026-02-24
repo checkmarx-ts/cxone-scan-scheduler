@@ -73,8 +73,8 @@ jobs:
           cat helm/Chart.yaml | sed -E "s/(appVersion:) \"DEV\"/\1 \"${{ inputs.tag}}\"/g" > helm/Chart.yaml.tmp
           rm helm/Chart.yaml
           mv helm/Chart.yaml.tmp helm/Chart.yaml
-          tar -C ./helm -czf ../cxone-scan-scheduler_helm.tgz
-          
+          tar -C ./helm -czf cxone-scan-scheduler_helm.tgz .
+
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5
