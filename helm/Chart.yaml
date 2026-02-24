@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cxone-scan-scheduler
+description: CheckmarxOne Scan Scheduler (Checkmarx Professional Services)
+type: application
+version: 1.0.0
+appVersion: "DEV"

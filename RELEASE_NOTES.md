@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.8
+* Implemented optional throttling by source fetch.
+* Implemented optional check for scans occurring a previous number of hours.  If so, the scheduled scan is skipped.
+* A Helm chart is now available as part of the release artifacts.  You can review the `values.yaml` file in the
+templates directory for configuration guidance when using Helm.
+
 ## v1.7
 * Fixed an issue causing the scheduler to not start due to a Checkmarx One breaking API change when retrieving groups.
 * Fixed an issue causing code repository import projects to not be scheduled due to a Checkmarx One breaking API change

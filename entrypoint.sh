@@ -10,11 +10,15 @@ echo "export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> /etc/envi
 [ -n "$LOG_LEVEL" ] && echo "export LOG_LEVEL=$LOG_LEVEL" >> /etc/environment
 [ -n "$SSL_VERIFY" ] && echo "export SSL_VERIFY=$SSL_VERIFY" >> /etc/environment
 [ -n "$PROXY" ] && echo "export PROXY=$PROXY" >> /etc/environment
+[ -n "$FETCH_THROTTLE" ] && echo "export FETCH_THROTTLE=$FETCH_THROTTLE" >> /etc/environment
+[ -n "$RECENT_SCAN_HOURS" ] && echo "export RECENT_SCAN_HOURS=$RECENT_SCAN_HOURS" >> /etc/environment
 
 if [ -n "$TIMEZONE" ]; then
     [ -f /usr/share/zoneinfo/$TIMEZONE ] && ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
 fi
 
 service cron start > /dev/null 2>&1
+
+su nobody -c "python3 init_semaphore.py"
 
 python3 "$@"

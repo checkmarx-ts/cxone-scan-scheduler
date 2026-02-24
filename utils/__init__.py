@@ -284,6 +284,18 @@ def get_proxy_config():
 def get_threads_config():
     return get_int_from_env("THREADS", 1, 2)
 
+def get_fetch_throttle():
+    if "FETCH_THROTTLE" in os.environ.keys():
+        return True if os.environ['FETCH_THROTTLE'].lower() == 'true' else False
+    else:
+        return False
+
+def get_fetch_timeout_config():
+    return get_int_from_env("FETCH_WAIT_SECONDS", 0, 300)
+
+def get_recent_scan_hours_config():
+    return get_int_from_env("RECENT_SCAN_HOURS", 0, 0)
+
 def get_api_timeout_config():
     return get_int_from_env("API_TIMEOUT", 10, 60)
 
@@ -312,20 +324,16 @@ def normalize_repo_enabled_engines(enabled_engines : List[str]):
     # scorecard has a strange name in the repo config
     return [x if x != "ossfsecorecard" else "scorecard" for x in enabled_engines]
 
-def create_engine_scan_config(engines : List[str], is_imported : bool) -> Union[List, Dict]:
+def create_engine_scan_config(engines : List[str]) -> Union[List, Dict]:
     requested_engines = [eng for eng in engines if eng not in micro_engines()]
     requested_micro_engines = [eng for eng in engines if eng in micro_engines()]
 
-    if not is_imported:
-        cfg = {eng:{} for eng in requested_engines}
+    cfg = [{'type' : eng, "value" : {}} for eng in requested_engines]
 
-        # Scans for microengines are requested this way for some reason
-        if len(requested_micro_engines) > 0:
-            cfg['microengines'] = {eng:'true' if eng in requested_micro_engines else 'false' for eng in micro_engines()}
+    if len(requested_micro_engines) > 0:
+        cfg.append({'type' : 'microengines', 'value' : {eng : 'true' for eng in requested_micro_engines}})
 
-        return cfg
-    else:
-        return requested_engines + requested_micro_engines
+    return cfg
 
 
 
