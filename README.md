@@ -27,13 +27,12 @@ The following methods can be used to schedule a scan:
 * A project is assigned to one or more groups with a configured group schedule.
 * A default schedule is defined and the project is not configured for a scheduled scan via any other method.
 
-
 ### Scheduling via Tags
 
 This is the preferred method of scheduling scans.  Scheduling a project for
 scanning requires adding a tag to the project in the form of:
 
-```
+```text
 schedule:<schedule>:<branch>:<engines>
 ```
 
@@ -90,8 +89,6 @@ Selection of the primary branch via the project configuration is shown in the im
 
 ![primary branch selection](images/primary-branch.png "Primary Branch Selection")
 
-
-
 #### Element: `<engines>` (optional)
 
 The value for `<engines>` can be one of the following:
@@ -140,8 +137,6 @@ only execute using the project's configured primary branch; if a
 project does not have a primary branch configured, the scan is not scheduled.
 
 Group schedules always execute with all available engine types.
-
-
 
 ### Schedule Execution Logic
 
@@ -194,7 +189,6 @@ mapping option added to the container execution command line:
 
 `-v $(pwd)/custom-ca.pem:/usr/local/share/ca-certificates/custom-ca.crt`
 
-
 ### Required Secrets
 
 Docker secrets are used to securely store secrets needed during runtime.
@@ -245,25 +239,25 @@ The following runtime environment variables are required to configure the system
 
 |Variable|Default|Description|
 |-|-|-|
-|`CXONE_REGION`|N/A| Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
+|`CXONE_REGION`|N/A|Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
 |`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
 |`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
 |`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
-|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.
+|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
 |`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
-|`SSL_VERIFY`|`True`| Set to `False` to turn off SSL certificate validation.|
-|`PROXY`| N/A | Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
-|`UPDATE_DELAY_SECONDS`| 43200 | The number of seconds to delay between checking for updates in the schedule.|
-|`POLICY_<name>`|N/A| Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
-|`TIMEZONE`| Etc/UTC | The [zoneinfo](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) string for the timezone.  If the zoneinfo string is invalid or not set, the timezone will default to UTC.|
-|`THREADS`| 2 | Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.
-|`FETCH_THROTTLE`| False | Set to `True` to wait for the source code clone to complete before submitting another scan.
-|`FETCH_WAIT_SECONDS`| 300 | The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.
-|`RECENT_SCAN_HOURS`| 0 | This is used to set a policy of not performing a scheduled scan if a successful scan has been executed with the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check. 
-|`API_TIMEOUT` | 60 | Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.
-|`API_RETRIES`| 3 | The number of times communicating with the Checkmarx One API will retry upon failure.
-|`API_RETRY_DELAY`| 15 | The maximum number of seconds to wait before retrying a failure Checkmarx One API request.
+|`SSL_VERIFY`|`True`|Set to `False` to turn off SSL certificate validation.|
+|`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
+|`UPDATE_DELAY_SECONDS`|43200| The number of seconds to delay between checking for updates in the schedule.|
+|`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
+|`TIMEZONE`|Etc/UTC|The [zoneinfo](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) string for the timezone.  If the zoneinfo string is invalid or not set, the timezone will default to UTC.|
+|`THREADS`|2|Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.|
+|`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
+|`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
+|`RECENT_SCAN_HOURS`|0|This is used to set a policy of not performing a scheduled scan if a successful scan has been executed with the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check.|
+|`API_TIMEOUT`|60|Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.|
+|`API_RETRIES`|3|The number of times communicating with the Checkmarx One API will retry upon failure.|
+|`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failure Checkmarx One API request.|
 
 ### Policy Definitions
 
@@ -280,25 +274,26 @@ The value assigned to the environment variable is a valid
 #### Examples of Policy Definitions
 
 Policy definition named `mypolicy` that scans at midnight on weekdays.  It can be referenced with the tag `schedule:mypolicy`.
-```
+
+```text
 POLICY_MYPOLICY=0 0 * * 1-5
 ```
 
 Policy definition named `general-audit-policy` that scans every 30 minutes on weekdays.  It can be referenced with
 the tag `schedule:general-audit-policy` or `schedule:general_audit_policy`.
-```
+
+```text
 POLICY_GENERAL_AUDIT_POLICY=0,30 * * * 1-5
 ```
 
-## Execution
-
+## Execution with Docker
 
 ### Obtaining the Container Image
 
 The container image tag is `ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest`.  You can reference this image tag
 when running the image.  If running Docker locally, for example, you can retrieve the image with this command:
 
-```
+```bash
 docker pull ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
 ```
 
@@ -312,8 +307,7 @@ Execution methods may vary, but you must consider the following for execution:
 If running locally with Docker, for example, this command would run the scheduler setting the configuration environment variables 
 and map `$(pwd)/run/secrets` to `/run/secrets`:
 
-
-```
+```bash
 docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
 ```
 
@@ -329,13 +323,13 @@ There are two other runtimes that can be specified: `audit` and
 The `scanner` is the tool used by `Cron` to execute scans.  It has some self-explanatory command line arguments that can be retrieved with the `-h` option.
 Executing `scanner` to see the help, for example, could be done using the following command line if running Docker locally:
 
-```
+```bash
 docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest scanner -h
 ```
 
 Which would yield an output similar to the following:
 
-```
+```shell
 A program to execute scans in CheckmarxOne as a Scheduler cron job.
 
 options:
@@ -359,10 +353,9 @@ would create the schedule for all projects.
 If running Docker locally, the following command line could be used
 to dump a CSV to a local file:
 
-```
+```bash
 docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest audit > out.csv
 ```
-
 
 #### Python Debugger Execution
 
@@ -371,14 +364,58 @@ the container so that you can attach a remote debugger instance.  The
 following command line is an example of how to execute the scheduler
 so that it waits for a remote debugger to attach before starting:
 
-```
+```bash
 docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
 ```
 
 The same can be done for the `scanner`:
 
-```
+```bash
 docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scanner.py
+```
+
+## Execution with Kubernetes
+
+Execution with Kubernetes uses a Helm chart that is available as a `.tgz` file with the release artifacts. The Helm chart will deploy the scheduler
+to the cluster in the `checkmarx` namespace.  The Helm chart includes a file named `values.yaml` that has documentation content for supplying
+configuration values that will be used to configure the container's runtime environment.  Many of the configurations found in `values.yaml` can
+be overridden via the Helm command line or your own local copy of the file.  While it is possible to modify the `values.yaml` file directly before
+installing the Helm chart, doing so will make it more difficult to update the deployment with new releases.
+
+After the Helm chart is installed, you must define the generic secret containing the required secret values in the `checkmarx` namespace.
+One method is to deploy the generic secret via the `kubectl` command line.  Example:
+
+```bash
+kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \ 
+    --from-literal=cxone_tenant=<tenant name> \
+    --from-literal=cxone_oauth_client_id=<oauth client id> \
+    --from-literal=cxone_oauth_client_secret=<oauth client secret>
+```
+
+To map custom CA certificates to the container, provide the name of a ConfigMap
+for the `cxone.deployment.ca_certs_configmap_name` configuration parameter that holds the names of files containing custom CA
+certificates.  In the following example, the ConfigMap named "cxone-scheduler-custom-cas" is created
+with the contents of the file `custom_ca.crt`:
+
+```bash
+kubectl create configmap --namespace=checkmarx cxone-scheduler-custom-cas --from-file=custom_ca.crt
+```
+
+If the value of `cxone.deployment.ca_certs_configmap_name` is not provided, no custom CA certificates
+will be mapped to the container.
+
+A minimal install of the latest release with Helm is shown in the example below.  After installing
+the Helm chart, the generic secret and ConfigMap need to be manually created in the `checkmarx` namespace for
+the scheduler to start.
+
+```bash
+helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/cxone-scan-scheduler_helm.tgz \
+    --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
+    --set cxone.deployment.ca_certs_configmap_name=cxone-scheduler-custom-cas \
+    --set cxone.connection.multitenant.region=US \
+    --set cxone.policies.debug="* * * * *" \
+    --set cxone.operation.log_level=DEBUG \
+    --set cxone.operation.schedule_update_seconds=30
 ```
 
 ## Other Notes
@@ -473,5 +510,3 @@ This method is primarily useful to automate the scheduling of scans for projects
 an onboarding process.  While it is possible to schedule scans with individual project tags,
 there may be cases where using group membership is a simpler method of assigning
 scan schedules.
-
-
