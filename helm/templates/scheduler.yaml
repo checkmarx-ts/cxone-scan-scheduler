@@ -57,10 +57,10 @@ spec:
                 - NET_RAW
           resources:
             requests:
-              memory: 32Mi
+              memory: 8Gi
               cpu: 1
             limits:
-              memory: 96Mi
+              memory: 96Gi
               cpu: 2
           volumeMounts:
             - name: scheduler-secret-tenant-volume
