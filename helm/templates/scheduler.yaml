@@ -23,26 +23,34 @@ spec:
     spec:
       automountServiceAccountToken: false
       volumes:
+        {{- with .Values.cxone.deployment }}
+
         - name: scheduler-secret-tenant-volume
           secret:
-            secretName: {{ .Values.cxone.secrets_name }}
+            secretName: {{ .secrets_name }}
             items:
               - key: cxone_tenant
                 path: cxone_tenant
 
         - name: scheduler-secret-oauth-client-id-volume
           secret:
-            secretName: {{ .Values.cxone.secrets_name }}
+            secretName: {{ .secrets_name }}
             items:
               - key: cxone_oauth_client_id
                 path: cxone_oauth_client_id
 
         - name: scheduler-secret-oauth-client-secret-volume
           secret:
-            secretName: {{ .Values.cxone.secrets_name }}
+            secretName: {{ .secrets_name }}
             items:
               - key: cxone_oauth_client_secret
                 path: cxone_oauth_client_secret
+          {{- if not (empty .ca_certs_configmap_name) }}
+        - name: scheduler-custom-ca-certs
+          configMap:
+            name: {{ .ca_certs_configmap_name }}
+          {{- end -}}
+        {{- end}}
 
       containers:
         - name: cxone-scan-scheduler
@@ -72,6 +80,12 @@ spec:
             - name: scheduler-secret-oauth-client-secret-volume
               mountPath: "/run/secrets/cxone_oauth_client_secret"
               subPath: cxone_oauth_client_secret
+            {{- with .Values.cxone.deployment }}
+              {{- if not (empty .ca_certs_configmap_name) }}
+            - name: scheduler-custom-ca-certs
+              mountPath: "/usr/local/share/ca-certificates"
+              {{- end -}}
+            {{- end}}
           env:
             {{- with .Values.cxone.connection }}
               {{- with .multitenant }}

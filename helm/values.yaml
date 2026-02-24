@@ -8,12 +8,14 @@
 # Most other options can be left blank or configured to tune
 # how the scheduler operates.
 cxone:
-  # Provide the name of the generic secret containing the key/value pairs
-  # with these keys:
-  # cxone_tenant
-  # cxone_oauth_client_id
-  # cxone_oauth_client_secret
-  secrets_name: cxone-scan-scheduler-secrets
+  deployment:
+    # Provide the name of the generic secret containing the key/value pairs
+    # with these keys:
+    # cxone_tenant
+    # cxone_oauth_client_id
+    # cxone_oauth_client_secret
+    secrets_name: cxone-scan-scheduler-secrets
+    ca_certs_configmap_name:
   connection:
     # Use only one: multitenant or singletenant
     # If both are used, the single-tenant configuration is ignored.
@@ -60,3 +62,14 @@ cxone:
     # scan to skip.
     recent_scan_hours:
   groups:
+    # Key values are the group moniker entry. Leave blank if not using group schedules.
+    # Each key has the following key/value pairs:
+    # * path - the group path
+    # * policy - the name of the schedule policy to apply to the group
+    # Example:
+    # mygroup1:
+    #   path: /dev/regions/US
+    #   policy: weekly
+    # mygroup2:
+    #   path: /dev/regions/UK
+    #   policy: monthly
