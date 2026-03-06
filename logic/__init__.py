@@ -8,7 +8,9 @@ from utils import get_threads_config, normalize_repo_enabled_engines
 from time import perf_counter_ns
 from datetime import timedelta
 
+
 class Scheduler:
+    
     __log = logging.getLogger("Scheduler")
 
     async def __get_schedule_entry_from_tag(self, project_data, schedule_tag_value, bad_cb):
@@ -161,8 +163,6 @@ class Scheduler:
         load_start = perf_counter_ns()
         Scheduler.__log.debug("Begin: Load project schedule")
 
-        throttle = asyncio.Semaphore(get_threads_config())
-
         schedule = {}
         
         group_index = Groups(self.__client)
@@ -196,10 +196,13 @@ class Scheduler:
         ret_sched.__client = client
         ret_sched.__group_schedules = group_schedules
         ret_sched.__policies = policies
+        ret_sched.__default_schedule = None
+        
         if default_schedule is not None and default_schedule in ret_sched.__policies.keys():
             ret_sched.__default_schedule = default_schedule
+        elif default_schedule is None:
+            Scheduler.__log.info("No default schedule policy has been defined.")
         else:
-            ret_sched.__default_schedule = None
             Scheduler.__log.error(f"Default schedule [{default_schedule}] is not a valid policy.")
 
         return ret_sched
