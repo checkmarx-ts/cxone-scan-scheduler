@@ -1,10 +1,14 @@
-import logging, asyncio, utils
-from cxone_api.util import page_generator, json_on_ok
+import logging, utils, asyncio
+from scan import ScanExecutor
+from cxone_api.util import page_generator
 from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.high.access_mgmt.user_mgmt import Groups
 from cxone_api.low.projects import retrieve_list_of_projects
-from cxone_api.low.iam import retrieve_groups
-from utils import get_threads_config, normalize_repo_enabled_engines
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from utils import (normalize_repo_enabled_engines, 
+                   get_threads_config, 
+                   ProjectSchedule)
 from time import perf_counter_ns
 from datetime import timedelta
 
@@ -127,27 +131,41 @@ class Scheduler:
         # and can be written immediately.
         new_scheduled_projects = set(new_schedule.keys()) - set(self.__the_schedule.keys())
         new_schedules = {k:new_schedule[k] for k in new_scheduled_projects}
-        self.__log.debug(f"Writing {len(new_scheduled_projects)} new project schedules")
-        utils.write_schedule(new_schedules)
+
+        for sched_list in new_schedules.values():
+            for new_sched in sched_list:
+                self.__add_job(new_sched)
+
+        self.__log.debug(f"Detected {len(new_scheduled_projects)} new project schedules")
         
         # Schedules that are in the current schedule but not in the new schedule can
         # be removed.
         removed_projects = set(self.__the_schedule.keys()) - set(new_schedule.keys())
-        removed_schedules = {k:self.__the_schedule[k] for k in removed_projects}
+
         self.__log.debug(f"Deleting {len(removed_projects)} project schedules")
-        utils.delete_scheduled_projects(removed_schedules)
         for removed in removed_projects:
+            if removed in self.__job_cache.keys():
+                for job in self.__job_cache[removed]:
+                    job.remove()
+                del self.__job_cache[removed]
+
             self.__the_schedule.pop(removed, None)
 
         # Schedules that still exist should be checked for changes.  Any changed
         # schedules need to be re-written.
         changed_schedule = await self.__get_changed_projects(new_schedule)
         self.__log.debug(f"Changing {len(changed_schedule)} project schedules")
-        utils.delete_scheduled_projects(changed_schedule)
-        utils.write_schedule(changed_schedule)
         for k in changed_schedule.keys():
             self.__the_schedule.pop(k, None)
             self.__the_schedule[k] = changed_schedule[k]
+
+            if k in self.__job_cache.keys():
+                for job in self.__job_cache[k]:
+                    job.remove()
+                del self.__job_cache[k]
+            
+            for sched in self.__the_schedule[k]:
+                self.__add_job(sched)
 
 
         self.__the_schedule = self.__the_schedule | new_schedules
@@ -197,6 +215,17 @@ class Scheduler:
         ret_sched.__group_schedules = group_schedules
         ret_sched.__policies = policies
         ret_sched.__default_schedule = None
+        ret_sched.__threads = asyncio.Semaphore(get_threads_config())
+
+        ret_sched.__scheduler = AsyncIOScheduler(job_defaults={"coalesce" : True, "misfire_grace_time" : None})
+        ret_sched.__scheduler.start()
+        ret_sched.__trigger_cache = {}
+
+        for trigger in policies:
+            if policies[trigger] not in ret_sched.__trigger_cache.keys():
+                ret_sched.__trigger_cache[policies[trigger]] = CronTrigger.from_crontab(policies[trigger])
+
+        ret_sched.__job_cache = {}
         
         if default_schedule is not None and default_schedule in ret_sched.__policies.keys():
             ret_sched.__default_schedule = default_schedule
@@ -212,13 +241,27 @@ class Scheduler:
         schedule = await Scheduler.__initialize(client, default_schedule, group_schedules, policies)
         return await schedule.__load_schedule(bad_callback)
 
+    def __add_job(self, sched : ProjectSchedule) -> None:
+        async def _exec_wrapper(executor : ScanExecutor, **kwargs):
+            await executor(**kwargs)
+
+        if sched.project_id not in self.__job_cache.keys():
+            self.__job_cache[sched.project_id] = []
+
+        self.__job_cache[sched.project_id].append(self.__scheduler.add_job(
+                    _exec_wrapper, 
+                    self.__trigger_cache[sched.schedule], name=str(sched),
+                    kwargs = {"executor" : ScanExecutor(self.__client), "sched" : sched, "threads" : self.__threads} ))
+
     @staticmethod
     async def start(client, default_schedule, group_schedules, policies):
 
         ret_sched = await Scheduler.__initialize(client, default_schedule, group_schedules, policies)
         ret_sched.__the_schedule = await ret_sched.__load_schedule(None)
 
-        utils.write_schedule(ret_sched.__the_schedule)
+        for pid in ret_sched.__the_schedule:
+            for scan_sched in ret_sched.__the_schedule[pid]:
+                ret_sched.__add_job(scan_sched)
 
         return ret_sched
 

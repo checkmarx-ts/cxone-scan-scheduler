@@ -114,6 +114,7 @@ def load_policies():
                 insert_policy(normalized_policy_name.replace("*", "-"))
                 insert_policy(normalized_policy_name.replace("*", "_"))
     
+    
     return policies
 
 

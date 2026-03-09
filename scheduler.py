@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import sys, os, logging, utils
-from __agent__ import __schedagent__
+from __agent__ import __agent__
 
 if sys.argv[0].lower().startswith("audit") or \
     (len (sys.argv) > 1 and sys.argv[1] is not None and sys.argv[1].lower().startswith("audit")):
@@ -36,7 +36,7 @@ while True:
         ssl_verify = utils.get_ssl_verify()
         proxy = utils.get_proxy_config()
 
-        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, __schedagent__, auth_endpoint, 
+        client = CxOneClient.create_with_oauth(oauth_id, oauth_secret, __agent__, auth_endpoint, 
                             api_endpoint, 
                             timeout=get_api_timeout_config(),
                             retries=get_api_retries_config(),
@@ -58,21 +58,21 @@ while True:
 
         __log.debug("Configuration loaded")
 
-        async def log_fifo():
-            if os.path.exists("/opt/cxone/logfifo"):
-                __log.debug("Running background fifo reader")
-                while True:
-                    async with aiofiles.open("/opt/cxone/logfifo", "rt", buffering=1) as log:
-                        async for line in log:
-                            if len(line) > 0:
-                                print(line.strip())
+        # async def log_fifo():
+        #     if os.path.exists("/opt/cxone/logfifo"):
+        #         __log.debug("Running background fifo reader")
+        #         while True:
+        #             async with aiofiles.open("/opt/cxone/logfifo", "rt", buffering=1) as log:
+        #                 async for line in log:
+        #                     if len(line) > 0:
+        #                         print(line.strip())
 
 
         async def scheduler():
             the_scheduler = await Scheduler.start(client, default_schedule, group_schedules, policies)
 
             # This task will never end
-            logtask = asyncio.create_task(log_fifo())
+            # logtask = asyncio.create_task(log_fifo())
 
             __log.info("Scheduler loop started")
             short_delay = False
