@@ -89,7 +89,12 @@ def load_default_schedule():
         return None
 
 
-def load_policies():
+def load_policies() -> Dict:
+    default = {
+        "daily" : "0 0 * * *",
+        "hourly" : "0 * * * *"
+    }
+
     policies = {}
     
     for k in os.environ.keys():
@@ -114,56 +119,19 @@ def load_policies():
                 insert_policy(normalized_policy_name.replace("*", "-"))
                 insert_policy(normalized_policy_name.replace("*", "_"))
     
+    # Allow override of daily and hourly
+    merge = {k:default[k] for k in default.keys() if k not in policies.keys() }
     
-    return policies
+    return policies | merge
 
 
-def make_safe_name(projectid, branch):
-    return f"{projectid}_{hashlib.md5(branch.encode()).hexdigest()}"
-
-def make_schedule_filename(index, projectid, branch):
-    return f"{make_safe_name(projectid, branch)}_{index:04}"
-
-def make_schedule_delete_fileglob(projectid):
-    return f"{projectid}_*"
-
-def write_cron_file(index, cron_schedule, projectid, branch, repo_url, engines, cron_path="/etc/cron.d"):
-    engine_args = " ".join([f"-e {x}" for x in engines])
-    filename = Path(cron_path) / make_schedule_filename(index, projectid, branch)
-    log_out_string = "> /opt/cxone/logfifo 2>&1"
-    cron_string = f"{cron_schedule} nobody cd /opt/cxone && ./scanner.py -p '{projectid}' -b '{branch}' -r '{repo_url}' -s '{cron_schedule}' {engine_args} {log_out_string}\n"
-
-    with open(filename, "w") as cronfile:
-        cronfile.write(cron_string)
-
-
-def write_schedule(schedule):
-
-    for scheds in schedule.values():
-        index = 0
-        for sched in scheds:
-            write_cron_file(index, sched.schedule, sched.project_id, sched.branch, sched.repo_url, sched.engines)
-            logger().debug(f"Writing schedule: {sched}")
-            index = index + 1
-
-def delete_scheduled_projects(schedule, cron_path="/etc/cron.d"):
-    for proj_id in schedule.keys():
-        for filename in glob.glob(str(Path(cron_path) / make_schedule_delete_fileglob(proj_id))):
-            logger().debug(f"Removing cron file: {filename}")
-            try:
-                os.remove(filename)
-            except FileNotFoundError as fnf:
-                logger().exception(fnf)
 
 
 class ScheduleString:
 
-    __daily = "0 0 * * *"
-    __hourly = "0 * * * *"
 
     def __init__(self, schedule, policy_dict):
         policy_strings = [f"^{x}$" for x in policy_dict.keys()]
-        policy_strings.append("^hourly$|^daily$")
         self.__validator = re.compile("|".join(policy_strings))
         self.__schedule = schedule.lower().strip("\"\'")
         self.__policies = policy_dict
@@ -175,12 +143,7 @@ class ScheduleString:
             return False
     
     def get_crontab_schedule(self):
-        if self.__schedule == "daily":
-            return ScheduleString.__daily
-        if self.__schedule == "hourly":
-            return ScheduleString.__hourly
-        else:
-            return self.__policies[self.__schedule]
+        return self.__policies[self.__schedule]
         
     def __repr__(self):
         return self.get_crontab_schedule()
