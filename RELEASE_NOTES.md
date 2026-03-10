@@ -1,5 +1,9 @@
 # Release Notes
 
+## v2.0
+* The memory footprint for the scheduler has been reduced significantly by removing the use of crond.
+* The `hourly` and `daily` default schedules can now be overridden via configuration.
+
 ## v1.8
 * Implemented optional throttling by source fetch.
 * Implemented optional check for scans occurring a previous number of hours.  If so, the scheduled scan is skipped.
