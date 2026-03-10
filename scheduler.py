@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys, os, logging, utils
+import sys, logging, utils
 from __agent__ import __agent__
 
 if sys.argv[0].lower().startswith("audit") or \
@@ -58,21 +58,9 @@ while True:
 
         __log.debug("Configuration loaded")
 
-        # async def log_fifo():
-        #     if os.path.exists("/opt/cxone/logfifo"):
-        #         __log.debug("Running background fifo reader")
-        #         while True:
-        #             async with aiofiles.open("/opt/cxone/logfifo", "rt", buffering=1) as log:
-        #                 async for line in log:
-        #                     if len(line) > 0:
-        #                         print(line.strip())
-
 
         async def scheduler():
             the_scheduler = await Scheduler.start(client, default_schedule, group_schedules, policies)
-
-            # This task will never end
-            # logtask = asyncio.create_task(log_fifo())
 
             __log.info("Scheduler loop started")
             short_delay = False
