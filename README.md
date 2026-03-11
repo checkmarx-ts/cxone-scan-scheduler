@@ -1,6 +1,8 @@
 # Checkmarx One Scan Scheduler
 
-The scan scheduler provides a method of automating scan invocation by cadence in Checkmarx One (CxOne).
+The cxone-scan-scheduler provides a method of automating scan invocation by cadence in Checkmarx One (CxOne).
+It does not use the Checkmarx One native scheduled scans feature.  It is a completely
+separate method of scheduling scans that runs external to Checkmarx One.
 
 Some highlights of how it works:
 
