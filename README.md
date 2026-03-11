@@ -379,7 +379,7 @@ the scheduler to start.
 helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/cxone-scan-scheduler_helm.tgz \
     --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
     --set cxone.connection.multitenant.region=US \
-    --set cxone.policies.debug="* * * * *" \
+    --set cxone.policies.debug="* * * * *"
 ```
 
 ## Other Notes
