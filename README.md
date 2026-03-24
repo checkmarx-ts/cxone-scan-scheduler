@@ -1,6 +1,8 @@
 # Checkmarx One Scan Scheduler
 
-The scan scheduler provides a method of automating scan invocation by cadence in Checkmarx One (CxOne).
+The cxone-scan-scheduler provides a method of automating scan invocation by cadence in Checkmarx One (CxOne).
+It does not use the Checkmarx One native scheduled scans feature.  It is a completely
+separate method of scheduling scans that runs external to Checkmarx One.
 
 Some highlights of how it works:
 
@@ -119,7 +121,9 @@ project settings.
 A default schedule can be applied to projects that are not [scheduled with a tag](#scheduling-via-tags)
 or [scheduled with a group](#scheduling-via-assigned-groups).  This method is not advised
 unless there are very few projects to schedule for scanning.  If a large number of projects are scheduled to scan
-by default, it may cause other scans to take longer as they wait for an available scan engine.
+by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly recommended that `FETCH_THROTTLE` is 
+also configured.  This will prevent a large number of scans from claiming all
+concurrent running scans and filling the scan queue.
 
 A default schedule  is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
 will cause all projects that have no deterministic schedule to assume the default schedule.
@@ -132,7 +136,7 @@ scheduling environment variables.
 
 Projects can be assigned to zero or more groups.  If a project is not
 assigned to a group, a schedule will only be executed if the project
-has a `schedule` tag or a default schedule has been defined. Group schedules 
+has a `schedule` tag or a default schedule has been defined. Group schedules
 only execute using the project's configured primary branch; if a
 project does not have a primary branch configured, the scan is not scheduled.
 
@@ -162,13 +166,13 @@ Since the scheduler keeps no state and does not monitor scan executions, scans f
 created by a Code Repository integration will not be tagged.
 
 If auditing scans from the list of all scans, filtering for scheduled scans
-can be accomplished using the `Initiator` column.  The initiator will use the name of 
+can be accomplished using the `Initiator` column.  The initiator will use the name of
 the Checkmarx One OAuth client used by the scanner to interact with the Checkmarx One API.
 
 ## Scan Scheduler Configuration
 
-The Scan Scheduler runs as a container.  At startup, it crawls the tenant's projects and creates the scan schedule.  It then 
-checks periodically for any schedule changes and updates 
+The Scan Scheduler runs as a container.  At startup, it crawls the tenant's projects and creates the scan schedule.  It then
+checks periodically for any schedule changes and updates
 the scan schedules accordingly.
 
 ### Add Optional Trusted CA Certificates
@@ -213,25 +217,27 @@ also be assigned to the OAuth client so that the Scan Scheduler can retrieve gro
 the configured group schedule assignments.  If not using group schedule assignments, the
 OAuth client does not require this role.
 
-A custom role with limited capabilities may be configured if desired.  The `ast-scanner`
-role will allow the scan scheduler to see all projects, create
-scheduled scan for all projects, and execute scans for all projects. 
-This level of access may not be appropriate for all organizations.  
+Group and role assignments can be applied to the OAuth client to limit the actions
+the client can perform.  The `ast-scanner` role will typically provide all required
+roles needed to perform scanning.  Custom roles can be created to restrict the
+actions that can be taken by the OAuth client.  The minimal roles must allow the OAuth
+client to:
 
-To limit the Scan Scheduler's project visibility via group membership
-, the following minimum permissions can be assigned to the OAuth Client 
-or as a custom composite role:
+* Manage Groups (only if using Group Schedules)
+* Create scans
+* View scans
+* View projects
+* View project parameters
 
-|Role Type|Name|
-|-|-|
-|IAM|`manage-groups` (optional)|
-|IAM|`user`|
-|CxOne|`create-scan-if-in-group`|
-|CxOne|`view-scans-if-in-group`|
-|CxOne|`view-projects-if-in-group`|
-|CxOne|`view-project-params-if-in-group`|
+#### OAuth Client Authorization
 
-If the role permissions change for the OAuth client, restarting the Scan Scheduler is required.
+The Checkmarx One IAM has "New" and "Old" versions as of 2025.  Tenants created prior to 2025 will be using the "Old" version until the "New" version is explicitly enabled in the tenant.  If you do not have `*-if-in-group` roles available to assign to the OAuth client, you are using the "New" IAM.
+
+With the "New" IAM, OAuth clients must be assigned a resource authorization so that the
+client can operate on projects.  It is suggested to set the Scheduler's OAuth
+client authorization at the tenant level so that it can operate on all projects. It
+is possible to set the authorization at different resource levels but this may
+require manual configuration steps to enable scanning.
 
 ### Environment Variables
 
@@ -268,8 +274,8 @@ using the following criteria:
 * Matches are case-insensitive.
 * Separators such as underscore (`_`) and dashes (`-`) are considered equivalent.
 
-The value assigned to the environment variable is a valid 
-[crontab string](https://www.adminschoice.com/crontab-quick-reference). 
+The value assigned to the environment variable is a valid
+[crontab string](https://www.adminschoice.com/crontab-quick-reference).
 
 #### Examples of Policy Definitions
 
@@ -311,43 +317,12 @@ and map `$(pwd)/run/secrets` to `/run/secrets`:
 docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
 ```
 
-#### Execution Options
+#### Executing the Schedule Audit
 
 By default, executing the container will start the scheduler.  The scheduler will run until the container is stopped.
 
-There are two other runtimes that can be specified: `audit` and
-`scanner`.
-
-##### Executing `scanner`
-
-The `scanner` is the tool used by `Cron` to execute scans.  It has some self-explanatory command line arguments that can be retrieved with the `-h` option.
-Executing `scanner` to see the help, for example, could be done using the following command line if running Docker locally:
-
-```bash
-docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest scanner -h
-```
-
-Which would yield an output similar to the following:
-
-```shell
-A program to execute scans in CheckmarxOne as a Scheduler cron job.
-
-options:
-  -h, --help            show this help message and exit
-  --projectid PROJECTID, -p PROJECTID
-                        The CxOne project id found in the tenant.
-  --engine ENGINES, -e ENGINES
-                        The engines to use for the scan.
-  --repo REPO, -r REPO  The code repository URL.
-  --branch BRANCH, -b BRANCH
-                        The code repository URL.
-  --schedule SCHEDULE, -s SCHEDULE
-                        The schedule string assigned to the 'scheduled' scan tag.
-```
-
-##### Executing `audit`
-
-The `audit` execution will dump a CSV stream showing how the scheduler
+It is possible to run the container with the `audit` parameter to produce an auditable
+schedule.  The `audit` execution will dump a CSV stream showing how the scheduler
 would create the schedule for all projects.
 
 If running Docker locally, the following command line could be used
@@ -366,12 +341,6 @@ so that it waits for a remote debugger to attach before starting:
 
 ```bash
 docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
-```
-
-The same can be done for the `scanner`:
-
-```bash
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scanner.py
 ```
 
 ## Execution with Kubernetes
@@ -411,11 +380,8 @@ the scheduler to start.
 ```bash
 helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/cxone-scan-scheduler_helm.tgz \
     --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
-    --set cxone.deployment.ca_certs_configmap_name=cxone-scheduler-custom-cas \
     --set cxone.connection.multitenant.region=US \
-    --set cxone.policies.debug="* * * * *" \
-    --set cxone.operation.log_level=DEBUG \
-    --set cxone.operation.schedule_update_seconds=30
+    --set cxone.policies.debug="* * * * *"
 ```
 
 ## Other Notes

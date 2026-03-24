@@ -29,6 +29,7 @@ RUN [ -f *.whl ] && pip install --no-cache-dir --break-system-packages *.whl || 
 COPY *.py entrypoint.sh *.json /opt/cxone/
 COPY logic /opt/cxone/logic
 COPY utils /opt/cxone/utils
+COPY scan /opt/cxone/scan
 
 RUN ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
