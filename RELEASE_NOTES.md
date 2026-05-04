@@ -1,5 +1,8 @@
 # Release Notes
 
+## v2.1
+* Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
+
 ## v2.0
 * The memory footprint for the scheduler has been reduced significantly by removing the use of crond.
 * The `hourly` and `daily` default schedules can now be overridden via configuration.
