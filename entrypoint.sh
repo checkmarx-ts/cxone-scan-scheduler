@@ -1,20 +1,14 @@
 #!/bin/bash
 
-update-ca-certificates
-export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-echo "export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> /etc/environment
+cat /etc/ssl/certs/ca-certificates.crt > /opt/cxone/certs.crt
+export REQUESTS_CA_BUNDLE=/opt/cxone/certs.crt
 
-[ -n "$CXONE_REGION" ] && echo "export CXONE_REGION=$CXONE_REGION" >> /etc/environment
-[ -n "$SINGLE_TENANT_AUTH" ] && echo "export SINGLE_TENANT_AUTH=$SINGLE_TENANT_AUTH" >> /etc/environment
-[ -n "$SINGLE_TENANT_API" ] && echo "export SINGLE_TENANT_API=$SINGLE_TENANT_API" >> /etc/environment
-[ -n "$LOG_LEVEL" ] && echo "export LOG_LEVEL=$LOG_LEVEL" >> /etc/environment
-[ -n "$SSL_VERIFY" ] && echo "export SSL_VERIFY=$SSL_VERIFY" >> /etc/environment
-[ -n "$PROXY" ] && echo "export PROXY=$PROXY" >> /etc/environment
-[ -n "$FETCH_THROTTLE" ] && echo "export FETCH_THROTTLE=$FETCH_THROTTLE" >> /etc/environment
-[ -n "$RECENT_SCAN_HOURS" ] && echo "export RECENT_SCAN_HOURS=$RECENT_SCAN_HOURS" >> /etc/environment
-
-if [ -n "$TIMEZONE" ]; then
-    [ -f /usr/share/zoneinfo/$TIMEZONE ] && ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
-fi
+for cert in $(find /usr/local/share/ca-certificates -name '*.crt' -print);
+do
+    if [[ -n "$LOG_LEVEL" && $LOG_LEVEL == "DEBUG" ]]; then
+        echo Adding $cert as a trusted CA certificate...
+    fi
+    cat $cert >> /opt/cxone/certs.crt
+done
 
 python3 "$@"
