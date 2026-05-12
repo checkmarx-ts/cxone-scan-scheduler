@@ -15,8 +15,6 @@ env:
 jobs:
   publish-scheduler:
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
     steps:
       - name: Set up Docker Buildx
         id: buildx

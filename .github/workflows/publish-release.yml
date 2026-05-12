@@ -40,6 +40,7 @@ jobs:
     uses: ./.github/workflows/invoke-build.yml
     permissions:
       packages: write
+      contents: write
     with:
       tag: ${{ needs.make-tag-string.outputs.tag }}
       prerelease: ${{ inputs.prerelease }}
