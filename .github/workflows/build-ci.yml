@@ -23,7 +23,7 @@ jobs:
           - name: Fetch Code
             uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-          - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
+          - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2
 
           - name: Execute Helm template test
             run: helm template --debug ./helm
@@ -33,7 +33,7 @@ jobs:
     steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
       - name: Install packages
