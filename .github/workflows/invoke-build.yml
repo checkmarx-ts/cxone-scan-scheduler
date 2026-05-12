@@ -14,12 +14,12 @@ jobs:
   create-tag:
     runs-on: ubuntu-latest
     steps:
-      - name: Tag repo ${{ inputs.tag }}
-        uses: richardsimko/update-tag@aab2434e9a5040687874aa39d1c6377ec0cb0d94
-        with:
-          tag_name: ${{ inputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Set Tag
+        run: git push origin '${{ inputs.tag }}'
+        
         
   publish-release:
     needs: [create-tag]
