@@ -14,12 +14,11 @@ jobs:
   create-tag:
     runs-on: ubuntu-latest
     steps:
-    steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Set Tag
         run: git push origin '${{ inputs.tag }}'
-        
+
         
   publish-release:
     needs: [create-tag]
