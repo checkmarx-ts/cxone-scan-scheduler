@@ -24,6 +24,8 @@ jobs:
   publish-release:
     needs: [create-tag]
     uses: ./.github/workflows/build.yml
+    permissions:
+      packages: write
     with:
       tag: ${{ inputs.tag }}
       prerelease: ${{ inputs.prerelease }}
