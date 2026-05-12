@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5
       - name: Fetch Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         if: env.WORKFLOW_CONCLUSION == 'failure'
 
       - name: Remove CodeTag
