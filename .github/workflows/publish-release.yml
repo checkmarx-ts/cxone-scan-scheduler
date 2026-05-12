@@ -38,6 +38,8 @@ jobs:
 
   invoke-build-for-publish:
     uses: ./.github/workflows/invoke-build.yml
+    permissions:
+      packages: write
     with:
       tag: ${{ needs.make-tag-string.outputs.tag }}
       prerelease: ${{ inputs.prerelease }}
