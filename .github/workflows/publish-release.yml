@@ -41,8 +41,5 @@ jobs:
     with:
       tag: ${{ needs.make-tag-string.outputs.tag }}
       prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
     needs: [make-tag-string, validate-no-tag]
 

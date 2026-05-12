@@ -9,17 +9,14 @@ on:
           description: 'Set to true if published build is a prerelease'
           type: boolean
           required: true
-      secrets:
-        PACKAGE_USER:
-          required: true
-        PACKAGE_PAT:
-          required: true
 env:
   DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/scan-scheduler
                 
 jobs:
   publish-scheduler:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Set up Docker Buildx
         id: buildx
@@ -29,8 +26,8 @@ jobs:
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
         with:
           registry: ghcr.io
-          username: ${{ secrets.PACKAGE_USER }}
-          password: ${{ secrets.PACKAGE_PAT }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch Code @ tag ${{ inputs.tag }}
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744

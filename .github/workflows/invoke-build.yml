@@ -9,11 +9,6 @@ on:
           description: 'Set to true if publishing a pre-release.'
           required: true
           type: boolean
-      secrets:
-          PACKAGE_USER:
-              required: true
-          PACKAGE_PAT:
-              required: true
               
 jobs:
   create-tag:
@@ -32,9 +27,6 @@ jobs:
     with:
       tag: ${{ inputs.tag }}
       prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
 
   remove-tag-on-failure:
     needs: [create-tag, publish-release]
