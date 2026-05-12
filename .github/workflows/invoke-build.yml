@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Tag repo ${{ inputs.tag }}
-        uses: richardsimko/update-tag@e173a8ef8f54ab526a91dad6139a25efed62424c
+        uses: richardsimko/update-tag@aab2434e9a5040687874aa39d1c6377ec0cb0d94
         with:
           tag_name: ${{ inputs.tag }}
         env:
@@ -31,16 +31,13 @@ jobs:
   remove-tag-on-failure:
     needs: [create-tag, publish-release]
     runs-on: ubuntu-latest
-    if: always()
+    if: ${{ failure() || cancelled() }}
     steps:
-      - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        if: env.WORKFLOW_CONCLUSION == 'failure'
 
       - name: Remove CodeTag
         run: git push origin ':refs/tags/${{ inputs.tag }}'
-        if: env.WORKFLOW_CONCLUSION == 'failure'
     
         
     
