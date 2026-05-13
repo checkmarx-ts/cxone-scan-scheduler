@@ -6,9 +6,9 @@ LABEL org.opencontainers.image.description="Schedules scans for projects in Chec
 
 USER root
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata && \
-    apt-get install -y python3 python3-pip && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends tzdata python3 python3-pip && \
     apt-get remove -y perl && \
     apt-get autoremove -y && \
     apt-get clean && \
