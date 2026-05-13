@@ -378,7 +378,7 @@ the Helm chart, the generic secret and ConfigMap need to be manually created in 
 the scheduler to start.
 
 ```bash
-helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/cxone-scan-scheduler_helm.tgz \
+helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/download/cxone-scan-scheduler_helm.tgz \
     --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
     --set cxone.connection.multitenant.region=US \
     --set cxone.policies.debug="* * * * *"
