@@ -57,6 +57,8 @@ spec:
           image: ghcr.io/checkmarx-ts/cxone/scan-scheduler:{{ .Chart.AppVersion }}
           imagePullPolicy: Always
           securityContext:
+            readOnlyRootFilesystem: true
+            runAsUser: nobody
             allowPrivilegeEscalation: false
             seccompProfile:
               type: RuntimeDefault
