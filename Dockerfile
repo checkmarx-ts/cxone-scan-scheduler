@@ -13,10 +13,10 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get autoremove -y && \
     apt-get clean && \
     groupadd -U nobody scheduler && \
-    mkdir -p /opt/cxone && \
-    touch /opt/cxone/certs.crt && \
-    chown root:scheduler /opt/cxone/certs.crt && \
-    chmod 660 /opt/cxone/certs.crt
+    mkdir -p /opt/cxone/certs && \
+    chown root:scheduler /opt/cxone/certs && \
+    chmod 770 /opt/cxone/certs
+
 
 COPY requirements.txt /opt/cxone/
 COPY *.py entrypoint.sh *.json /opt/cxone/

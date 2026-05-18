@@ -58,7 +58,7 @@ spec:
           imagePullPolicy: Always
           securityContext:
             readOnlyRootFilesystem: true
-            runAsUser: nobody
+            runAsUser: 65534
             allowPrivilegeEscalation: false
             seccompProfile:
               type: RuntimeDefault
@@ -73,6 +73,8 @@ spec:
               memory: 32Gi
               cpu: 2
           volumeMounts:
+            - name: scheduler-custom-ca-volume
+              mountPath: "/opt/cxone/certs"
             - name: scheduler-secret-tenant-volume
               mountPath: "/run/secrets/cxone_tenant"
               subPath: cxone_tenant
@@ -82,6 +84,11 @@ spec:
             - name: scheduler-secret-oauth-client-secret-volume
               mountPath: "/run/secrets/cxone_oauth_client_secret"
               subPath: cxone_oauth_client_secret
+          volumes:
+            - name: scheduler-custom-ca-volume
+              emptyDir:
+                medium: Memory
+                sizeLimit: 12Mi
             {{- with .Values.cxone.deployment }}
               {{- if not (empty .ca_certs_configmap_name) }}
             - name: scheduler-custom-ca-certs
