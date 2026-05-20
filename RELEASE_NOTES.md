@@ -3,6 +3,7 @@
 ## v2.1
 * Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
 * The container now executes as a low-privileged user.
+* Helm chart updates to improve security posture.
 * As of the time of release, CVE-2026-43284 (Dirty Frag) is reported to affect Ubuntu 26.04 with no
   fix available.  The base docker image does not load the affected modules.  This is effectively equivalent to the
   "Manual mitigation" documented here: https://ubuntu.com/blog/dirty-frag-linux-vulnerability-fixes-available

@@ -8,7 +8,7 @@ USER root
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends tzdata python3 python3-pip && \
+    apt-get install -y --no-install-recommends tzdata=2026a-3ubuntu1 python3=3.14.3-0ubuntu2 python3-pip=25.1.1+dfsg-1ubuntu2 && \
     apt-get remove -y perl && \
     apt-get autoremove -y && \
     apt-get clean && \
@@ -34,7 +34,7 @@ CMD ["scheduler"]
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]
 
 FROM base AS debug
-RUN apt-get install -y python3-debugpy python3-pytest
+RUN apt-get install -y python3-debugpy=1.8.19+ds-1ubuntu3 python3-pytest=9.0.2-4
 COPY requirements.txt *.whl /opt/cxone/
 RUN [ -f *.whl ] && pip install --no-cache-dir --break-system-packages *.whl || :
 
