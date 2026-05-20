@@ -23,6 +23,11 @@ spec:
     spec:
       automountServiceAccountToken: false
       volumes:
+        - name: scheduler-ca-store
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Mi
+
         {{- with .Values.cxone.deployment }}
 
         - name: scheduler-secret-tenant-volume
@@ -57,6 +62,8 @@ spec:
           image: ghcr.io/checkmarx-ts/cxone/scan-scheduler:{{ .Chart.AppVersion }}
           imagePullPolicy: Always
           securityContext:
+            readOnlyRootFilesystem: true
+            runAsUser: 65534
             allowPrivilegeEscalation: false
             seccompProfile:
               type: RuntimeDefault
@@ -71,6 +78,8 @@ spec:
               memory: 32Gi
               cpu: 2
           volumeMounts:
+            - name: scheduler-ca-store
+              mountPath: "/opt/cxone/certs"
             - name: scheduler-secret-tenant-volume
               mountPath: "/run/secrets/cxone_tenant"
               subPath: cxone_tenant

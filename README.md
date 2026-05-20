@@ -351,8 +351,31 @@ configuration values that will be used to configure the container's runtime envi
 be overridden via the Helm command line or your own local copy of the file.  While it is possible to modify the `values.yaml` file directly before
 installing the Helm chart, doing so will make it more difficult to update the deployment with new releases.
 
-After the Helm chart is installed, you must define the generic secret containing the required secret values in the `checkmarx` namespace.
-One method is to deploy the generic secret via the `kubectl` command line.  Example:
+### Minimal Install with Helm
+
+A minimal install of the latest release with Helm is shown in the example below:
+
+```bash
+helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/download/cxone-scan-scheduler_helm.tgz \
+    --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
+    --set cxone.connection.multitenant.region=US \
+    --set cxone.policies.debug="* * * * *"
+```
+The scheduler will not immediately start after the install.  This is due to the missing required secrets deployment with the name
+`cxone-scan-scheduler-secrets`.
+
+This install does the following:
+
+* Sets the name of the secrets that will be supplied in a later command to `cxone-scan-scheduler-secrets`.
+* Sets the multi-tenant region to `US`.
+* Adds a schedule policy named `debug` to start scheduled scans every minute.
+
+The options provided to the settings should be modified to meet your installation requirements.
+
+### Deploying the Secrets
+
+After the Helm chart is installed, it will not execute until deployment of a generic secret containing the required secret values
+in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
 
 ```bash
 kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \ 
@@ -361,28 +384,26 @@ kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets
     --from-literal=cxone_oauth_client_secret=<oauth client secret>
 ```
 
+### Using Custom CA Certificates
+
 To map custom CA certificates to the container, provide the name of a ConfigMap
 for the `cxone.deployment.ca_certs_configmap_name` configuration parameter that holds the names of files containing custom CA
-certificates.  In the following example, the ConfigMap named "cxone-scheduler-custom-cas" is created
+certificates.  In the following example, the ConfigMap named `cxone-scheduler-custom-cas` is created
 with the contents of the file `custom_ca.crt`:
 
 ```bash
 kubectl create configmap --namespace=checkmarx cxone-scheduler-custom-cas --from-file=custom_ca.crt
 ```
 
-If the value of `cxone.deployment.ca_certs_configmap_name` is not provided, no custom CA certificates
-will be mapped to the container.
-
-A minimal install of the latest release with Helm is shown in the example below.  After installing
-the Helm chart, the generic secret and ConfigMap need to be manually created in the `checkmarx` namespace for
-the scheduler to start.
+Then to install the custom CA, set `cxone.deployment.ca_certs_configmap_name` to use the ConfigMap.
 
 ```bash
-helm install scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/cxone-scan-scheduler_helm.tgz \
-    --set cxone.deployment.secrets_name=cxone-scan-scheduler-secrets \
-    --set cxone.connection.multitenant.region=US \
-    --set cxone.policies.debug="* * * * *"
+helm upgrade scheduler --reuse-values \
+--set cxone.deployment.ca_certs_configmap_name=cxone-scheduler-custom-cas
 ```
+
+If the value of `cxone.deployment.ca_certs_configmap_name` is not provided, no custom CA certificates
+will be mapped to the container.
 
 ## Other Notes
 

@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Fetch Code
         continue-on-error: true
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
       - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
@@ -38,11 +38,11 @@ jobs:
 
   invoke-build-for-publish:
     uses: ./.github/workflows/invoke-build.yml
+    permissions:
+      packages: write
+      contents: write
     with:
       tag: ${{ needs.make-tag-string.outputs.tag }}
       prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
     needs: [make-tag-string, validate-no-tag]
 

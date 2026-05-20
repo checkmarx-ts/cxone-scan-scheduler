@@ -9,22 +9,18 @@ on:
           description: 'Set to true if publishing a pre-release.'
           required: true
           type: boolean
-      secrets:
-          PACKAGE_USER:
-              required: true
-          PACKAGE_PAT:
-              required: true
               
 jobs:
   create-tag:
     runs-on: ubuntu-latest
     steps:
-      - name: Tag repo ${{ inputs.tag }}
-        uses: richardsimko/update-tag@e173a8ef8f54ab526a91dad6139a25efed62424c
-        with:
-          tag_name: ${{ inputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Set Tag
+        run: |
+          git tag '${{ inputs.tag }}'
+          git push origin '${{ inputs.tag }}'
+
         
   publish-release:
     needs: [create-tag]
@@ -32,23 +28,17 @@ jobs:
     with:
       tag: ${{ inputs.tag }}
       prerelease: ${{ inputs.prerelease }}
-    secrets:
-      PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
-      PACKAGE_PAT: ${{ secrets.PACKAGE_PAT }}
 
   remove-tag-on-failure:
     needs: [create-tag, publish-release]
     runs-on: ubuntu-latest
-    if: always()
+    if: ${{ failure() || cancelled() }}
     steps:
-      - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5
       - name: Fetch Code
-        uses: actions/checkout@v3
-        if: env.WORKFLOW_CONCLUSION == 'failure'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Remove CodeTag
         run: git push origin ':refs/tags/${{ inputs.tag }}'
-        if: env.WORKFLOW_CONCLUSION == 'failure'
     
         
     

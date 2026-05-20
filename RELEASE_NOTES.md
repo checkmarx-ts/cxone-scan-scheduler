@@ -1,5 +1,16 @@
 # Release Notes
 
+## v2.1
+* Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
+* The container now executes as a low-privileged user.
+* Helm chart updates to improve security posture.
+* As of the time of release, Ubuntu 26.04 is has no patches for CVE-2026-43284 (Dirty Frag)
+  and CVE-2026-46300 (Fragnesia, CVE number not yet assigned). These are not currently exploitable
+  in the scan scheduler given that the base docker image does not load the exploitable kernel
+  modules.  The manual mitigation of each can be reviewed to verify that the modules are not loaded:
+    * [CVE-2026-43284 (Dirty Frag)](https://ubuntu.com/blog/dirty-frag-linux-vulnerability-fixes-available)
+    * [CVE-2026-46300 (Fragnesia)](https://ubuntu.com/blog/fragnesia-linux-vulnerability-fixes-available)
+
 ## v2.0
 * The memory footprint for the scheduler has been reduced significantly by removing the use of crond.
 * The `hourly` and `daily` default schedules can now be overridden via configuration.

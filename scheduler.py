@@ -66,7 +66,12 @@ while True:
             short_delay = False
             while True:
                 __log.info(f"Projects with scheduled scans: {the_scheduler.scheduled_scans}")
-                await asyncio.sleep(update_delay if not short_delay else 90)
+
+                try:
+                    await asyncio.sleep(update_delay if not short_delay else 90)
+                except asyncio.exceptions.CancelledError:
+                    raise
+
                 __log.info("Updating schedule...")
                 try:
                     new, removed, changed = await the_scheduler.refresh_schedule()
@@ -96,9 +101,13 @@ while True:
             except BaseException as ex:
                 audit_log.exception(ex)
             finally:
-                break
+                exit(1)
         else:
-            asyncio.run(scheduler())
+            try:
+                asyncio.run(scheduler())
+            except KeyboardInterrupt:
+                __log.info("Scheduler Ended")
+                exit(0)
 
     except Exception as ex:
         __log.exception(ex)
