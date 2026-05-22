@@ -12,9 +12,12 @@ on:
 env:
   DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/scan-scheduler
                 
+permissions:
+  contents: read
+
 jobs:
   publish-scheduler:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Set up Docker Buildx
         id: buildx
@@ -44,7 +47,9 @@ jobs:
           docker push --all-tags $DOCKER_REPO
   
   publish-release:
-    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # for ncipollo/release-action to create a release
+    runs-on: cx-public-ubuntu-x64
     needs: [publish-scheduler]
     steps:
       - name: Fetch Code @ tag ${{ inputs.tag }}

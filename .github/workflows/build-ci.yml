@@ -2,9 +2,12 @@ on:
     workflow_dispatch:
     push:
 
+permissions:
+  contents: read
+
 jobs:
   build-docker:
-      runs-on: ubuntu-latest
+      runs-on: cx-public-ubuntu-x64
       steps:
           - name: Fetch Code
             uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -18,7 +21,7 @@ jobs:
 
 
   validate-helm:
-      runs-on: ubuntu-latest
+      runs-on: cx-public-ubuntu-x64
       steps:
           - name: Fetch Code
             uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -29,7 +32,7 @@ jobs:
             run: helm template --debug ./helm
     
   execute-unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
