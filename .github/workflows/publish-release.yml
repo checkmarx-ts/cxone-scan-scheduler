@@ -91,7 +91,7 @@ jobs:
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
-    needs: [publish-container]
+    needs: [publish-container, make-tag-string]
     steps:
       - name: Fetch Code @ tag ${{ needs.make-tag-string.outputs.tag }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
