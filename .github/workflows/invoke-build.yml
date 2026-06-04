@@ -11,34 +11,34 @@ on:
           type: boolean
               
 jobs:
-  create-tag:
-    runs-on: cx-public-ubuntu-x64
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Set Tag
-        run: |
-          git tag '${{ inputs.tag }}'
-          git push origin '${{ inputs.tag }}'
+  # create-tag:
+  #   runs-on: cx-public-ubuntu-x64
+  #   steps:
+  #     - name: Fetch Code
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+  #     - name: Set Tag
+  #       run: |
+  #         git tag '${{ inputs.tag }}'
+  #         git push origin '${{ inputs.tag }}'
 
         
   publish-release:
-    needs: [create-tag]
+    # needs: [create-tag]
     uses: ./.github/workflows/build.yml
     with:
       tag: ${{ inputs.tag }}
       prerelease: ${{ inputs.prerelease }}
 
-  remove-tag-on-failure:
-    needs: [create-tag, publish-release]
-    runs-on: cx-public-ubuntu-x64
-    if: ${{ failure() || cancelled() }}
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+  # remove-tag-on-failure:
+  #   needs: [create-tag, publish-release]
+  #   runs-on: cx-public-ubuntu-x64
+  #   if: ${{ failure() || cancelled() }}
+  #   steps:
+  #     - name: Fetch Code
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Remove CodeTag
-        run: git push origin ':refs/tags/${{ inputs.tag }}'
+  #     - name: Remove CodeTag
+  #       run: git push origin ':refs/tags/${{ inputs.tag }}'
     
         
     

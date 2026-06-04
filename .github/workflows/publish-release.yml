@@ -20,7 +20,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag-string.outputs.tag }}
     steps:
-      - name: Create tag
+      - name: Create tag string
         run: |
           [ ${{ inputs.prerelease }} = false ] && echo "tag=v${{ inputs.version }}" >> $GITHUB_OUTPUT || \
             echo "tag=v${{ inputs.version }}-$GITHUB_RUN_NUMBER-prerelease" >> $GITHUB_OUTPUT
@@ -34,18 +34,50 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          ref: refs/tags/${{ needs.make-tag-string.outputs.tag }}
+          ref: ${{ needs.make-tag-string.outputs.tag }}
       - name: Fail if tag ${{ needs.make-tag-string.outputs.tag }} exists
         run: |
           [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
 
-  invoke-build-for-publish:
-    uses: ./.github/workflows/invoke-build.yml
-    permissions:
-      packages: write
-      contents: write
-    with:
-      tag: ${{ needs.make-tag-string.outputs.tag }}
-      prerelease: ${{ inputs.prerelease }}
+
+
+    create-tag:
     needs: [make-tag-string, validate-no-tag]
+    permissions:
+      contents: write
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Set Tag
+        run: |
+          git tag '${{ needs.make-tag-string.outputs.tag }}'
+          git push origin '${{ needs.make-tag-string.outputs.tag }}'
+
+  publish-release:
+    needs: [create-tag, make-tag-string]
+    runs-on: cx-public-ubuntu-x64
+    run: exit 1
+
+  remove-tag-on-failure:
+    needs: [create-tag, publish-release, make-tag-string]
+    runs-on: cx-public-ubuntu-x64
+    if: (failure() || cancelled()) && needs.create-tag.result == "success"
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Remove tag
+        run: git push origin ':refs/tags/${{ needs.make-tag-string.outputs.tag }}'
+
+
+  # invoke-build-for-publish:
+  #   needs: [make-tag-string, validate-no-tag]
+  #   uses: ./.github/workflows/invoke-build.yml
+  #   permissions:
+  #     packages: write
+  #     contents: write
+  #   with:
+  #     tag: ${{ needs.make-tag-string.outputs.tag }}
+  #     prerelease: ${{ inputs.prerelease }}
 
