@@ -55,7 +55,9 @@ jobs:
   publish-release:
     needs: [create-tag, make-tag-string]
     runs-on: cx-public-ubuntu-x64
-    run: exit 1
+    steps:
+    - name: force fail
+      run: exit 1
 
   remove-tag-on-failure:
     needs: [create-tag, publish-release, make-tag-string]
