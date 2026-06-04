@@ -25,7 +25,8 @@ COPY utils /opt/cxone/utils
 COPY scan /opt/cxone/scan
 
 WORKDIR /opt/cxone
-RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
+RUN pip config set global.index-url https://pypi.echohq.com/simple && \
+    pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     rm requirements.txt && \
     ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
