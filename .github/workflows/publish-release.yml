@@ -10,6 +10,8 @@ on:
         description: 'Check if this is to publish a pre-release.'
         required: true
         type: boolean
+env:
+  DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/cxone/scan-scheduler
   
 permissions:
   contents: read
@@ -52,15 +54,82 @@ jobs:
           git tag '${{ needs.make-tag-string.outputs.tag }}'
           git push origin '${{ needs.make-tag-string.outputs.tag }}'
 
-  publish-release:
+  publish-container:
     needs: [create-tag, make-tag-string]
+    permissions:
+      packages: write
     runs-on: cx-public-ubuntu-x64
     steps:
-    - name: force fail
-      run: exit 1
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+
+      - name: Login to GitHub Container Registry
+        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Code @ tag ${{ needs.make-tag-string.outputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.make-tag-string.outputs.tag }}
+
+      - name: Update version
+        run: |
+            echo "__version__='${{ needs.make-tag-string.outputs.tag }}'" > __version__.py
+
+      - name: Build and Push Docker Image
+        run: |
+          BRIEFTAG=${{ needs.make-tag-string.outputs.tag }}
+          docker build -f Dockerfile -t $DOCKER_REPO:$BRIEFTAG .
+          [ ${{ inputs.prerelease }} = false ] && docker tag $DOCKER_REPO:$BRIEFTAG $DOCKER_REPO:latest || :
+          docker push --all-tags $DOCKER_REPO
+
+  publish-release:
+    permissions:
+      contents: write
+    runs-on: cx-public-ubuntu-x64
+    needs: [publish-container]
+    steps:
+      - name: Fetch Code @ tag ${{ needs.make-tag-string.outputs.tag }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.make-tag-string.outputs.tag }}
+
+      - name: Make release text
+        run: |
+          echo "# CxOne Scan Scheduler ${{ needs.make-tag-string.outputs.tag }}" > release.md
+          echo Executable artifacts are published in a container that can be pulled locally and executed. >> release.md
+          echo '```' >> release.md
+          [ ${{ inputs.prerelease }} = false ] && echo "docker pull $DOCKER_REPO:latest" >> release.md || :
+          echo "docker pull $DOCKER_REPO:${{ needs.make-tag-string.outputs.tag }}" >> release.md
+          echo '```' >> release.md
+          echo >> release.md
+          echo "A Helm chart is also available as part of the release artifacts." >> release.md
+
+      - name: Make Helm tgz
+        run: |
+          cat helm/Chart.yaml | sed -E "s/(appVersion:) \"DEV\"/\1 \"${{ needs.make-tag-string.outputs.tag }}\"/g" > helm/Chart.yaml.tmp
+          rm helm/Chart.yaml
+          mv helm/Chart.yaml.tmp helm/Chart.yaml
+          tar -C ./helm -czf cxone-scan-scheduler_helm.tgz .
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: step-security/release-action@a0d8e0f90f554c15366ca2c9046bf4090d24adbe # v1.21.0
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          bodyFile: release.md
+          name: ${{ needs.make-tag-string.outputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
+          tag: ${{ needs.make-tag-string.outputs.tag }}
+          artifacts: "*.tgz"
 
   remove-tag-on-failure:
-    needs: [create-tag, publish-release, make-tag-string]
+    needs: [create-tag, publish-container, make-tag-string]
     permissions:
       contents: write
     runs-on: cx-public-ubuntu-x64
@@ -72,14 +141,4 @@ jobs:
       - name: Remove tag
         run: git push origin ':refs/tags/${{ needs.make-tag-string.outputs.tag }}'
 
-
-  # invoke-build-for-publish:
-  #   needs: [make-tag-string, validate-no-tag]
-  #   uses: ./.github/workflows/invoke-build.yml
-  #   permissions:
-  #     packages: write
-  #     contents: write
-  #   with:
-  #     tag: ${{ needs.make-tag-string.outputs.tag }}
-  #     prerelease: ${{ inputs.prerelease }}
 
