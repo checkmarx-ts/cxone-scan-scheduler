@@ -39,20 +39,18 @@ jobs:
         run: |
           [[ $(git describe --tags) ==  ${{ needs.make-tag-string.outputs.tag }} ]] && exit 1 || :
 
-
-
-    create-tag:
-      needs: [make-tag-string, validate-no-tag]
-      permissions:
-        contents: write
-      runs-on: cx-public-ubuntu-x64
-      steps:
-        - name: Fetch Code
-          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        - name: Set Tag
-          run: |
-            git tag '${{ needs.make-tag-string.outputs.tag }}'
-            git push origin '${{ needs.make-tag-string.outputs.tag }}'
+  create-tag:
+    needs: [make-tag-string, validate-no-tag]
+    permissions:
+      contents: write
+    runs-on: cx-public-ubuntu-x64
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Set Tag
+        run: |
+          git tag '${{ needs.make-tag-string.outputs.tag }}'
+          git push origin '${{ needs.make-tag-string.outputs.tag }}'
 
   publish-release:
     needs: [create-tag, make-tag-string]
