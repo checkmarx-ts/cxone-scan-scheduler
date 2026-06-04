@@ -61,6 +61,8 @@ jobs:
 
   remove-tag-on-failure:
     needs: [create-tag, publish-release, make-tag-string]
+    permissions:
+      contents: write
     runs-on: cx-public-ubuntu-x64
     if: (failure() || cancelled()) && needs.create-tag.result == 'success'
     steps:
