@@ -14,7 +14,6 @@ jobs:
           - name: Set up Docker Buildx
             uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
             with:
-              install: true
               platforms: linux/amd64
           - name: Execute Docker Build
             run: docker build .
@@ -36,10 +35,15 @@ jobs:
     steps:
       - name: Fetch Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
+
       - name: Install packages
-        run: pip install -r ${{ github.workspace }}/requirements.txt
+        run: |
+          pip config set global.index-url https://pypi.echohq.com/simple
+          pip install -r ${{ github.workspace }}/requirements.txt
+
       - name: Execute Unit Tests
         run: python -m unittest discover -v -p *test.py -s ${{ github.workspace }}/tests
