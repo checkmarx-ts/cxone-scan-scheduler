@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.description="Schedules scans for projects in Chec
 USER root
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
+    echo 'Acquire::EnableSrvRecords "false";' >> /etc/apt/apt.conf.d/99-nosrv && \
     apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends tzdata=2026a-3ubuntu1 python3=3.14.3-0ubuntu2 python3-pip=25.1.1+dfsg-1ubuntu2 && \
     apt-get remove -y perl && \
@@ -25,7 +26,8 @@ COPY utils /opt/cxone/utils
 COPY scan /opt/cxone/scan
 
 WORKDIR /opt/cxone
-RUN pip install -r requirements.txt --no-cache-dir --break-system-packages && \
+RUN pip config set global.index-url https://pypi.echohq.com/simple && \
+    pip install -r requirements.txt --no-cache-dir --break-system-packages && \
     rm requirements.txt && \
     ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
