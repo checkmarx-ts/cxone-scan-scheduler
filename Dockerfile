@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.description="Schedules scans for projects in Chec
 USER root
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt update -o Acquire::ForceIPv4=true && \
     apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends tzdata=2026a-3ubuntu1 python3=3.14.3-0ubuntu2 python3-pip=25.1.1+dfsg-1ubuntu2 && \
     apt-get remove -y perl && \
