@@ -116,6 +116,9 @@ jobs:
           mv helm/Chart.yaml.tmp helm/Chart.yaml
           tar -C ./helm -czf cxone-scan-scheduler_helm.tgz .
 
+      - name: Make Claude skill zip
+        run: (cd ai/scheduler-config && zip -r "$OLDPWD/cxone-scheduler-config-skill.zip" . && cd $OLDPWD)
+
       - name: Create GitHub Release
         id: create_release
         uses: step-security/release-action@a0d8e0f90f554c15366ca2c9046bf4090d24adbe # v1.21.0
@@ -126,7 +129,7 @@ jobs:
           name: ${{ needs.make-tag-string.outputs.tag }}
           prerelease: ${{ inputs.prerelease }}
           tag: ${{ needs.make-tag-string.outputs.tag }}
-          artifacts: "*.tgz"
+          artifacts: "*.tgz,*-skill.zip"
 
   remove-tag-on-failure:
     needs: [create-tag, publish-release, make-tag-string]
