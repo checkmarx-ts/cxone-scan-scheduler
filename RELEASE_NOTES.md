@@ -1,5 +1,9 @@
 # Release Notes
 
+## v2.2
+
+* Added Claude skill for guided configuration and deployment assistance.
+
 ## v2.1
 * Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
 * The container now executes as a low-privileged user.
