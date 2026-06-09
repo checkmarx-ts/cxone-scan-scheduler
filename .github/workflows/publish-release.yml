@@ -117,7 +117,10 @@ jobs:
           tar -C ./helm -czf cxone-scan-scheduler_helm.tgz .
 
       - name: Make Claude skill zip
-        run: (cd ai/scheduler-config && zip -r "$OLDPWD/cxone-scheduler-config-skill.zip" . && cd $OLDPWD)
+        run: |
+          cp README.md ai/cxone-scheduler-config/references
+          cp -r helm ai/cxone-scheduler-config/references
+          (cd ai/cxone-scheduler-config && zip -r "$OLDPWD/cxone-scheduler-config-skill.zip" . && cd $OLDPWD)
 
       - name: Create GitHub Release
         id: create_release
