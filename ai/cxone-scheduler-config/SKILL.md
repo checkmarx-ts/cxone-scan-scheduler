@@ -1,5 +1,5 @@
 ---
-name: scheduler-config
+name: cxone-scheduler-config
 description: An assistant for configuring and deploying the cxone-scan-scheduler.
 ---
 
