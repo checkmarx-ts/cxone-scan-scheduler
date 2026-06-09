@@ -4,7 +4,11 @@ The cxone-scan-scheduler provides a method of automating scan invocation by cade
 It does not use the Checkmarx One native scheduled scans feature.  It is a completely
 separate method of scheduling scans that runs external to Checkmarx One.
 
-Some highlights of how it works:
+**This documentation is compiled into a Claude skill that can be downloaded from the release
+artifacts.  The skill provides AI guided configuration and deployment for those wanting a faster
+path to deployment.**
+
+Some highlights of how `cxone-scan-scheduler` works:
 
 * Runs in a container that builds the scan schedule on startup.
 * Works for single- or multi-tenant CxOne.
