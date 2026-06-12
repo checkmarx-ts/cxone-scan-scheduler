@@ -1,4 +1,4 @@
-FROM ubuntu:26.04 AS base
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS base
 LABEL org.opencontainers.image.source="https://github.com/checkmarx-ts/cxone-scan-scheduler"
 LABEL org.opencontainers.image.vendor="Checkmarx Professional Services"
 LABEL org.opencontainers.image.title="Checkmarx One Scan Scheduler"
