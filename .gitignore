@@ -7,6 +7,10 @@ env
 mitm*
 *.csv
 
+ai/**/helm
+ai/**/README.md
+ai/**/*.zip
+
 **/*.whl
 
 # Byte-compiled / optimized / DLL files
