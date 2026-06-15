@@ -1,6 +1,9 @@
+name: cxone-scan-scheduler CI
 on:
     workflow_dispatch:
     push:
+    schedule:
+      - cron: '0 3 * * 1'
 
 permissions:
   contents: read
