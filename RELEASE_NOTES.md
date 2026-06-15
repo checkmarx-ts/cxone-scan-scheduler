@@ -3,6 +3,7 @@
 ## v2.2
 
 * Added Claude skill for guided configuration and deployment assistance.
+* Supply chain security improvements.
 
 ## v2.1
 * Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
