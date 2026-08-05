@@ -45,7 +45,7 @@ jobs:
           - name: Fetch Code
             uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-          - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2
+          - uses: step-security/setup-helm@104176d810f424da7451a3fe25620d40c4dfb883 # v5.0.1
 
           - name: Execute Helm template test
             run: helm template --debug ./helm
