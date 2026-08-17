@@ -68,7 +68,7 @@ jobs:
 
       - name: Install packages
         run: |
-          pip config set global.index-url https://pypi.echohq.com/simple
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
           pip install -r ${{ github.workspace }}/requirements.txt
 
       - name: Execute Unit Tests
