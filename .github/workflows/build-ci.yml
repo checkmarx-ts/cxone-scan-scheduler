@@ -20,13 +20,19 @@ jobs:
               platforms: linux/amd64
 
           - name: Execute Docker Build (default release)
-            run: docker build -t sched:default .
+            run: |
+              export INDEX_URL="https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
+              docker build -t sched:default --secret id=PACKAGE_INDEX,env=INDEX_URL .
 
           - name: Execute Docker Build (explicit release)
-            run: docker build --target release -t sched:release .
+            run: |
+              export INDEX_URL="https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
+              docker build --target release -t sched:release --secret id=PACKAGE_INDEX,env=INDEX_URL .
 
           - name: Execute Docker Build (explicit debug)
-            run: docker build --target debug -t sched:debug .
+            run: |
+              export INDEX_URL="https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
+              docker build --target debug -t sched:debug --secret id=PACKAGE_INDEX,env=INDEX_URL .
 
           - name: Check that release is default target
             run: |
@@ -45,7 +51,7 @@ jobs:
           - name: Fetch Code
             uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-          - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2
+          - uses: step-security/setup-helm@104176d810f424da7451a3fe25620d40c4dfb883 # v5.0.1
 
           - name: Execute Helm template test
             run: helm template --debug ./helm
@@ -62,7 +68,7 @@ jobs:
 
       - name: Install packages
         run: |
-          pip config set global.index-url https://pypi.echohq.com/simple
+          pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
           pip install -r ${{ github.workspace }}/requirements.txt
 
       - name: Execute Unit Tests

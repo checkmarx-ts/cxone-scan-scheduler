@@ -26,8 +26,8 @@ COPY utils /opt/cxone/utils
 COPY scan /opt/cxone/scan
 
 WORKDIR /opt/cxone
-RUN pip config set global.index-url https://pypi.echohq.com/simple && \
-    pip install -r requirements.txt --no-cache-dir --break-system-packages && \
+RUN --mount=type=secret,id=PACKAGE_INDEX \
+    pip install -r requirements.txt --no-cache-dir --break-system-packages $([ -f "/run/secrets/PACKAGE_INDEX" ] && printf -- "--index-url $(cat /run/secrets/PACKAGE_INDEX)" ) && \
     rm requirements.txt && \
     ln -s scheduler.py scheduler && \
     ln -s scheduler.py audit
@@ -36,9 +36,12 @@ CMD ["scheduler"]
 ENTRYPOINT ["/opt/cxone/entrypoint.sh"]
 
 FROM base AS debug
-RUN apt-get install -y python3-debugpy=1.8.19+ds-1ubuntu3 python3-pytest=9.0.2-4
 COPY requirements.txt *.whl /opt/cxone/
-RUN [ -f *.whl ] && pip install --no-cache-dir --break-system-packages *.whl || :
+RUN --mount=type=secret,id=PACKAGE_INDEX \
+    apt-get install -y python3-debugpy=1.8.19+ds-1ubuntu3 python3-pytest=9.0.2-4
+RUN --mount=type=secret,id=PACKAGE_INDEX \
+    apt-get install -y python3-debugpy=1.8.19+ds-1ubuntu3 python3-pytest=9.0.2-4 && \
+    [ -f *.whl ] && pip install --no-cache-dir --break-system-packages *.whl $([ -f "/run/secrets/PACKAGE_INDEX" ] && printf -- "--index-url $(cat /run/secrets/PACKAGE_INDEX)" ) || :
 
 FROM base AS release
 USER nobody
