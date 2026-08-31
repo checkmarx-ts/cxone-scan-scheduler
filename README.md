@@ -99,7 +99,6 @@ Selection of the primary branch via the project configuration is shown in the im
 
 The value for `<engines>` can be one of the following:
 
-* `all` to scan with all engines.
 * Empty which follows the logic described below.
 * A single engine name, which is currently one of the following:
     * `sast`
@@ -107,26 +106,28 @@ The value for `<engines>` can be one of the following:
     * `kics`
     * `apisec`
     * `containers`
+    * `aisc`
     * `2ms`
     * `scorecard` (only available for projects created by importing the repository)
 * A comma-separated list of two or more of the single engine names.
 
-Duplicated or invalid engine names are ignored.  
+Duplicated or invalid engine names are ignored.
 
 The engines for the scan are chosen in the following precedence order:
 
 1. Engines defined explicitly in the tag override all other engine selections.
 2. For a project created with a code repository integration, the engines selected in the "Code Repository"
 project settings.
-3. Otherwise `all` engines are selected.
+3. The engines used for the last scan invoked by the scheduler.
+4. The engines specified with the `DEFAULT_ENGINES` configuration option.
 
 ### Scheduling with a Default Schedule
 
 A default schedule can be applied to projects that are not [scheduled with a tag](#scheduling-via-tags)
 or [scheduled with a group](#scheduling-via-assigned-groups).  This method is not advised
 unless there are very few projects to schedule for scanning.  If a large number of projects are scheduled to scan
-by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly recommended that `FETCH_THROTTLE` is 
-also configured.  This will prevent a large number of scans from claiming all
+by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly
+recommended that `FETCH_THROTTLE` is  also configured.  This will prevent a large number of scans from claiming all
 concurrent running scans and filling the scan queue.
 
 A default schedule  is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
@@ -252,6 +253,7 @@ The following runtime environment variables are required to configure the system
 |`CXONE_REGION`|N/A|Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
 |`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
 |`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
+|`DEFAULT_ENGINES`|'sast'|A comma-separated list of scan engines to use if scan engines to use can't be determined.|
 |`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
 |`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
 |`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|

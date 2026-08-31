@@ -2,8 +2,12 @@
 
 ## V3.0
 * API changes in Checkmarx One now cause scan failures when requesting scans for unlicensed engines.
-  The engine selection of `all` is now no longer available.  The logic changes are documented in the
-  `README.md` file.
+  This has required that the engine selection of `all` has been removed.  The engine selection logic changes are
+  documented in `README.md`.
+* If using `all` for engine selection in in any project tags, your scheduled scans will function differently.
+* The default schedule no longer uses `all`.  It follows the documented engine selection logic.
+* The optional configuration `DEFAULT_ENGINES` has been added to specify default scan engines to use
+  if the engine logic can't otherwise identify which engines to use.
 * Added support for the AI Supply Chain Security scanner.
 
 ## v2.2
