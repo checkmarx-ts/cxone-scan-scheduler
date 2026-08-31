@@ -165,10 +165,9 @@ scheduled scan is executing for that project.  This will prevent overlapping sch
 starting multiple scans or long-running scans from being started before
 the previously scheduled scan is completed.
 
-Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.  Scans invoked for projects
-created with a Code Repository integration can't be tagged until the scan is complete.
-Since the scheduler keeps no state and does not monitor scan executions, scans for projects
-created by a Code Repository integration will not be tagged.
+Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.
+Scans invoked for projects created with a Code Repository integration can't be tagged until
+the scan is complete, so scans of for projects of this type will not have this tag.
 
 If auditing scans from the list of all scans, filtering for scheduled scans
 can be accomplished using the `Initiator` column.  The initiator will use the name of
