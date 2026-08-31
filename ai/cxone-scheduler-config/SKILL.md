@@ -16,6 +16,10 @@ capabilities.
 
 * Reference `references/README.md` for the documentation for `cxone-scan-scheduler`.
 
+* Reference `references/RELEASE_NOTES.md` for documentation related to the changes between versions
+  of `cxone-scan-scheduler`.  The highest version found in this reference can be considered as the
+  version for which this skill applies most correctly.
+
 * Reference `references/understanding-general-issues.md` to know when to issue warnings about potential
   misconfigurations.
 
