@@ -119,6 +119,7 @@ jobs:
       - name: Make Claude skill zip
         run: |
           cp README.md ai/cxone-scheduler-config/references
+          cp RELEASE_NOTES.md ai/cxone-scheduler-config/references
           cp -r helm ai/cxone-scheduler-config/references
           (cd ai/cxone-scheduler-config && zip -r "$OLDPWD/cxone-scheduler-config-skill.zip" . && cd $OLDPWD)
 

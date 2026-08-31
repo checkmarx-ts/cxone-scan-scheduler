@@ -1,5 +1,11 @@
 # Release Notes
 
+## V3.0
+* API changes in Checkmarx One now cause scan failures when requesting scans for unlicensed engines.
+  The engine selection of `all` is now no longer available.  The logic changes are documented in the
+  `README.md` file.
+* Added support for the AI Supply Chain Security scanner.
+
 ## v2.2
 
 * Added Claude skill for guided configuration and deployment assistance.
