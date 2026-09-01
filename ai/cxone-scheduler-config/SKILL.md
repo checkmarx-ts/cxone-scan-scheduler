@@ -14,11 +14,13 @@ capabilities.
 
 * You are to ask the user which use-case applies to their chosen deployment method.
 
-* Reference `references/README.md` for the documentation for `cxone-scan-scheduler`.
+* Reference `references/README.md` for the documentation for `cxone-scan-scheduler`.  Also reference 
+  `references/readme-clarifications.md` for clarification on readme
 
 * Reference `references/RELEASE_NOTES.md` for documentation related to the changes between versions
-  of `cxone-scan-scheduler`.  The highest version found in this reference can be considered as the
-  version for which this skill applies most correctly.
+  of `cxone-scan-scheduler`.
+  
+* Reference `references/package-clarifications.md` to understand the version and location of `cxone-scan-scheduler`.
 
 * Reference `references/understanding-general-issues.md` to know when to issue warnings about potential
   misconfigurations.
