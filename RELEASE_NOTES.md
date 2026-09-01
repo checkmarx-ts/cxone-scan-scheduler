@@ -8,6 +8,8 @@
 * The default schedule no longer uses `all`.  It follows the documented engine selection logic.
 * The optional configuration `DEFAULT_ENGINES` has been added to specify default scan engines to use
   if the engine logic can't otherwise identify which engines to use.
+* The optional configuration `LIMIT_ENGINES` has been added to limit which engines will be used
+  when determining which engines to request in a scan.
 * Added support for the AI Supply Chain Security scanner.
 
 ## v2.2
