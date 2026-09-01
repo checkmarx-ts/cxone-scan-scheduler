@@ -266,7 +266,7 @@ The following runtime environment variables are required to configure the system
 |`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
 |`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
 |`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
-|`LIMIT_ENGINES`|N/A|A comma-separated list of scan engines that will be allowed when requesting engines to use in a scan. Engines outside of this list are ignored. If not configured, all supported engines are allowed.|
+|`LIMIT_ENGINES`|N/A|A comma-separated list of scan engines that will be allowed when requesting engines to use in a scan. Engines outside of this list are ignored. If not configured, all supported engines are allowed.  See notes about using `LIMIT_ENGINES`.|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
 |`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
 |`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
@@ -429,6 +429,18 @@ If the value of `cxone.deployment.ca_certs_configmap_name` is not provided, no c
 will be mapped to the container.
 
 ## Other Notes
+
+### Limiting Engines with `LIMIT_ENGINES`
+
+The configuration option `LIMIT_ENGINES` allows exclusion of one or more scan engines from executing
+during scheduled scans.  The limitation logic does not apply to engines defined with the `DEFAULT_ENGINES`
+configuration option.
+
+If a project is configured to request a scan engine that is not listed in the `LIMIT_ENGINES` list
+of engines, a scan will execute with the engine list taken from `DEFAULT_ENGINES`.  This is to prevent
+a schedule tag or Code Repository configuration from being set to an engine not listed in `LIMIT_ENGINES`
+when the option is used.  A project configured with an engine not in the `LIMIT_ENGINES` list would prevent
+scans from executing for the project.
 
 ### Scan Timing
 

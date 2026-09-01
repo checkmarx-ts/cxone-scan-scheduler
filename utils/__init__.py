@@ -109,10 +109,12 @@ def load_default_schedule():
 
 def load_default_engines(force_default: bool = False):
     if not force_default:
-        val = os.environ.get("DEFAULT_ENGINES")
+        cfg_val = os.environ.get("DEFAULT_ENGINES")
 
-        if val is not None and len(val) > 0:
-            return val
+        if cfg_val is not None and len(cfg_val) > 0:
+            validated = [eng for eng in cfg_val.split(",") if eng in supported_engines(True)]
+            if len(validated) > 0:
+                return ",".join(validated)
 
     return "sast"
 
@@ -317,12 +319,12 @@ def get_api_retry_delay_config():
 def get_limit_engines() -> List[str] | None:
     engine_list = os.environ.get("LIMIT_ENGINES")
     if engine_list is not None:
-        return engine_list.split(",")
+        validated = [eng for eng in engine_list.split(",") if eng in supported_engines(True)]
+        return validated if len(validated) > 0 else None
 
 
 def supported_micro_engines():
     return ["2ms", "scorecard"]
-
 
 def supported_engines(include_for_imported: bool):
     # scorecard is only available for code repository imported projects
@@ -331,7 +333,7 @@ def supported_engines(include_for_imported: bool):
     if not include_for_imported:
         valid_micro_engines.remove("scorecard")
 
-    engines = [
+    return [
         "sast",
         "kics",
         "sca",
@@ -339,6 +341,11 @@ def supported_engines(include_for_imported: bool):
         "containers",
         "aisc",
     ] + valid_micro_engines
+
+def desired_engines(include_for_imported: bool):
+
+    engines = supported_engines(include_for_imported)
+
     limit_engines = get_limit_engines()
     if limit_engines is not None:
         engines = [engine for engine in engines if engine in limit_engines]
@@ -371,13 +378,15 @@ def create_engine_scan_config(engines: List[str]) -> Union[List, Dict]:
 
 
 def normalize_selected_engines_from_tag(
-    engine_string: str | None, is_imported: bool
+    engine_string: str | None,
+    is_imported: bool,
+    try_defaults: bool = True,
 ) -> List[str]:
 
     if engine_string is None:
         return normalize_selected_engines_from_tag(load_default_engines(), is_imported)
 
-    supported = supported_engines(is_imported)
+    supported = desired_engines(is_imported)
 
     result = []
     requested = engine_string.lower().split(",")
@@ -386,10 +395,12 @@ def normalize_selected_engines_from_tag(
         if eng in supported:
             result.append(eng)
 
-    return (
-        result
-        if len(result) > 0
-        else normalize_selected_engines_from_tag(
-            load_default_engines(True), is_imported
+    if len(result) > 0:
+        return result
+    elif try_defaults and len(result) == 0:
+        return normalize_selected_engines_from_tag(
+            load_default_engines(True), is_imported, False
         )
-    )
+    elif not try_defaults and len(result) == 0:
+        return [engine for engine in load_default_engines().split(",") if engine in supported_engines(is_imported)]
+        
