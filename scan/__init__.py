@@ -7,7 +7,7 @@ from cxone_api.util import json_on_ok
 from utils import (create_engine_scan_config, 
                    get_recent_scan_hours_config, 
                    get_fetch_timeout_config,
-                   get_fetch_throttle, ProjectSchedule)
+                   get_fetch_throttle, ProjectSchedule, SCHEDULE_TAG)
 from typing import List, Union
 import asyncio, logging
 from datetime import datetime, timedelta, timezone
@@ -16,7 +16,6 @@ from requests import Response
 
 class ScanExecutor:
   __CHECK_DELAY_S = 30
-  __SCHEDULE_TAG = "scheduled"
 
   @classmethod
   def log(clazz):
@@ -32,7 +31,7 @@ class ScanExecutor:
             project_repo = await ProjectRepoConfig.from_project_id(self.__client, sched.project_id)
             safe_name = ScanExecutor.__create_name(project_repo.name, sched.project_id, sched.repo_url, sched.branch)
 
-            tag = {ScanExecutor.__SCHEDULE_TAG: sched.schedule} if sched.schedule is not None else {ScanExecutor.__SCHEDULE_TAG : None}
+            tag = {SCHEDULE_TAG: sched.schedule} if sched.schedule is not None else {SCHEDULE_TAG : None}
 
 
             # Do not submit a scheduled scan if a scheduled scan is already running.
@@ -104,7 +103,7 @@ class ScanExecutor:
       running_scan = False
 
       if not await project_repo.is_scm_imported:
-          running_scans = json_on_ok(await retrieve_list_of_scans(self.__client, tags_keys="scheduled", branch=branch, 
+          running_scans = json_on_ok(await retrieve_list_of_scans(self.__client, tags_keys=SCHEDULE_TAG, branch=branch, 
                                                                   project_id=project_repo.project_id, limit=1, statuses=['Queued', 'Running']))
           if int(running_scans['filteredTotalCount']) != 0:
               running_scan = True
