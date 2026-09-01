@@ -87,5 +87,5 @@ jobs:
       - name: Check formatting
         run: |
           pip config set global.index-url https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple
-          pip install . black==26.5.1
+          pip install black==26.5.1
           black --check .
