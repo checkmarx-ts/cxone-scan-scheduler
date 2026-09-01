@@ -83,7 +83,8 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           BRIEFTAG=${{ needs.make-tag-string.outputs.tag }}
-          docker build -f Dockerfile -t $DOCKER_REPO:$BRIEFTAG .
+          export INDEX_URL="https://:${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}@pypi.echohq.com/simple"
+          docker build -f Dockerfile -t $DOCKER_REPO:$BRIEFTAG --target=release --secret id=PACKAGE_INDEX,env=INDEX_URL .
           [ ${{ inputs.prerelease }} = false ] && docker tag $DOCKER_REPO:$BRIEFTAG $DOCKER_REPO:latest || :
           docker push --all-tags $DOCKER_REPO
 
