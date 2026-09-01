@@ -23,13 +23,13 @@ based on changes in projects that would affect schedule assignments.
 
 ## Scheduling Project Scanning
 
-Scheduling scans for a project requires the project has a configured way to clone code from the repository to be scanned.
+Scheduling scans for a project requires that the project has a configured way to clone code from the repository to be scanned.
 If the repository is private, a supported set of credentials must also be configured so that the code for scanning can be
 cloned. Projects created using the "Code Repository" integration will have the clone credentials automatically managed without the need to configure credentials for each repository.
 
 The following methods can be used to schedule a scan:
 
-* The project is tagged with a `schedule` tag that specifies the schedule scan parameters.
+* The project is tagged with a `schedule` tag that specifies the scheduled scan parameters.
 * A project is assigned to one or more groups with a configured group schedule.
 * A default schedule is defined and the project is not configured for a scheduled scan via any other method.
 
@@ -116,7 +116,7 @@ The engine names are described in the following table.
 |`2ms`| Secrets |
 |`scorecard`| Repository Health (only available for projects created by importing the repository)|
 
-Duplicated or invalid engine names found in tags are ignored. If `LIMIT_ENGINES` is configured, engines
+Duplicate or invalid engine names found in tags are ignored. If `LIMIT_ENGINES` is configured, engines
 specified in the tag that are not found in the `LIMIT_ENGINES` list are ignored.
 
 The engines for the scan are chosen in the following precedence order:
@@ -135,10 +135,10 @@ A default schedule can be applied to projects that are not [scheduled with a tag
 or [scheduled with a group](#scheduling-via-assigned-groups).  This method is not advised
 unless there are very few projects to schedule for scanning.  If a large number of projects are scheduled to scan
 by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly
-recommended that `FETCH_THROTTLE` is  also configured.  This will prevent a large number of scans from claiming all
+recommended that `FETCH_THROTTLE` is also configured.  This will prevent a large number of scans from claiming all
 concurrent running scans and filling the scan queue.
 
-A default schedule  is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
+A default schedule is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
 will cause all projects that have no deterministic schedule to assume the default schedule.
 
 ### Scheduling via Assigned Groups
@@ -253,7 +253,7 @@ require manual configuration steps to enable scanning.
 
 ### Environment Variables
 
-The following runtime environment variables are required to configure the system.  
+The following runtime environment variables are required to configure the system.
 
 |Variable|Default|Description|
 |-|-|-|
@@ -319,7 +319,7 @@ docker pull ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
 
 ### Executing the Container Image
 
-Execution methods may vary, but you must consider the following for execution:
+Execution methods may vary, but you must consider the following:
 
 1. How to define configuration environment variables.
 2. How to map secrets to `/run/secrets`
@@ -348,7 +348,7 @@ docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/check
 
 #### Python Debugger Execution
 
-If you are a developer that wants to modify the code, you can execute
+If you are a developer who wants to modify the code, you can execute
 the container so that you can attach a remote debugger instance.  This does not
 work with a Kubernetes deployment.
 
