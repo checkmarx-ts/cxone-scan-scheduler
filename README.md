@@ -17,7 +17,7 @@ following methods:
     * A tag applied to the project with scan details.
     * By the project's group membership.
     * An optional default scan schedule that is applied to projects
-    that are not scheduled through one any other schedule criteria.
+    that are not scheduled through any other schedule criteria.
 * Scan schedules are updated periodically to adjust schedules
 based on changes in projects that would affect schedule assignments.
 
@@ -100,27 +100,34 @@ Selection of the primary branch via the project configuration is shown in the im
 The value for `<engines>` can be one of the following:
 
 * Empty which follows the logic described below.
-* A single engine name, which is currently one of the following:
-    * `sast`
-    * `sca`
-    * `kics`
-    * `apisec`
-    * `containers`
-    * `aisc`
-    * `2ms`
-    * `scorecard` (only available for projects created by importing the repository)
+* A single engine name
 * A comma-separated list of two or more of the single engine names.
 
-Duplicated or invalid engine names are ignored.  If `LIMIT_ENGINES` is specified, engines
-not listed in `LIMIT_ENGINES` are ignored.
+The engine names are described in the following table.
+
+|Engine Name|Description|
+|-|-|
+|`sast`| Static Code Analysis|
+|`sca`| Software Composition Analysis|
+|`kics`| Infrastructure-as-Code|
+|`apisec`| API Security|
+|`containers`| Container Security|
+|`aisc`| AI Supply Chain Security|
+|`2ms`| Secrets |
+|`scorecard`| Repository Health (only available for projects created by importing the repository)|
+
+Duplicated or invalid engine names found in tags are ignored. If `LIMIT_ENGINES` is configured, engines
+specified in the tag that are not found in the `LIMIT_ENGINES` list are ignored.
 
 The engines for the scan are chosen in the following precedence order:
 
 1. Engines defined explicitly in the project `schedule` tag override all other engine selections.
 2. For a project created with a code repository integration, the engines selected in the "Code Repository"
 project settings.
-3. The engines used for the last scan invoked by the scheduler.
-4. The engines specified with the `DEFAULT_ENGINES` configuration option.
+3. The engines specified with the `DEFAULT_ENGINES` configuration option.
+4. The engines used for the last scan.
+
+If `LIMIT_ENGINES` is configured, engines not listed in `LIMIT_ENGINES` are not requested for the scan.
 
 ### Scheduling with a Default Schedule
 
@@ -168,7 +175,7 @@ the previously scheduled scan is completed.
 
 Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.
 Scans invoked for projects created with a Code Repository integration can't be tagged until
-the scan is complete, so scans of for projects of this type will not have this tag.
+the scan is complete, so scans for projects of this type will not have this tag.
 
 If auditing scans from the list of all scans, filtering for scheduled scans
 can be accomplished using the `Initiator` column.  The initiator will use the name of
@@ -254,7 +261,7 @@ The following runtime environment variables are required to configure the system
 |`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failure Checkmarx One API request.|
 |`API_TIMEOUT`|60|Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.|
 |`CXONE_REGION`|N/A|Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
-|`DEFAULT_ENGINES`|'sast'|A comma-separated list of scan engines to use if scan engines to use can't be determined.|
+|`DEFAULT_ENGINES`|`sast`|A comma-separated list of scan engines to use if scan engines to use can't be determined.|
 |`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
 |`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
 |`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
@@ -465,7 +472,7 @@ a sign that your SCM may need to be scaled to increase concurrent clone capacity
 
 ### Scheduling Controls via Group Membership
 
-It is possible to assign group membership to the OAuth Client.  The the minimum roles
+It is possible to assign group membership to the OAuth Client.  The minimum roles
 for a [custom composite role](#oauth-client) can be used in conjunction with group
 membership for different ways of controlling how scans are scheduled.
 
