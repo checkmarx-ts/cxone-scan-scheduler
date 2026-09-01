@@ -401,7 +401,7 @@ After the Helm chart is installed, it will not execute until a generic secret co
 is deployed in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
 
 ```bash
-kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \ 
+kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \
     --from-literal=cxone_tenant=<tenant name> \
     --from-literal=cxone_oauth_client_id=<oauth client id> \
     --from-literal=cxone_oauth_client_secret=<oauth client secret>
