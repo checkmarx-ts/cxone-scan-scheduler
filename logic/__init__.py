@@ -1,16 +1,18 @@
 import logging, utils, asyncio
 from scan import ScanExecutor
-from cxone_api.util import page_generator
+from cxone_api.util import page_generator, json_on_ok
 from cxone_api.high.projects import ProjectRepoConfig
 from cxone_api.high.access_mgmt.user_mgmt import Groups
 from cxone_api.low.projects import retrieve_list_of_projects
+from cxone_api.low.scans import retrieve_list_of_scans
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from utils import (normalize_repo_enabled_engines, 
-                   get_threads_config, 
+                   get_threads_config, SCHEDULE_TAG, get_limit_engines,
                    ProjectSchedule)
 from time import perf_counter_ns
 from datetime import timedelta
+from typing import List
 
 
 class Scheduler:
@@ -52,8 +54,7 @@ class Scheduler:
                     engines = normalize_repo_enabled_engines(await repo_details.get_enabled_scanners(branch))
 
                 if engines is None or len(engines) == 0:
-                    engines = utils.normalize_selected_engines_from_tag(engines_from_tag if engines_from_tag is not None else 'all', 
-                                                                        await repo_details.is_scm_imported)
+                    engines = utils.normalize_selected_engines_from_tag(engines_from_tag, await repo_details.is_scm_imported)
 
                 if engines is None:
                     if bad_cb is not None:
@@ -75,6 +76,26 @@ class Scheduler:
 
         return None
 
+    async def __get_selected_engine_array(self, repo_cfg : ProjectRepoConfig) -> List[str]:
+      selected_engines = None
+
+      if await repo_cfg.is_scm_imported:
+        selected_engines = utils.normalize_selected_engines_from_tag(
+            ",".join(await repo_cfg.get_enabled_scanners(await repo_cfg.primary_branch)), await repo_cfg.is_scm_imported)
+      else:
+        # Get last scan from scheduler for non-repo-import projects
+        last_scheduled_scan = (json_on_ok(await retrieve_list_of_scans(self.__client, 
+                                                                        project_id=repo_cfg.id, limit=1,
+                                                                        statuses=['Completed']))["scans"] or [None])[0]
+
+        if last_scheduled_scan is not None:
+          loaded_engine_configs = last_scheduled_scan.get("metadata", {}).get("configs", [])
+          selected_engines = utils.normalize_selected_engines_from_tag(",".join([x.get("type") for x in loaded_engine_configs]), await repo_cfg.is_scm_imported)
+
+        if selected_engines is None:
+          selected_engines = utils.normalize_selected_engines_from_tag(None, await repo_cfg.is_scm_imported)
+
+      return selected_engines
 
     async def __get_schedule_entry_no_tag(self, bad_cb, group_index, project_json):
         project_schedules = []
@@ -92,7 +113,7 @@ class Scheduler:
                     if ss is not None:
                         project_schedules.append(utils.ProjectSchedule(project_json['id'], ss, 
                             await repo_cfg.primary_branch, 
-                            utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported), 
+                            await self.__get_selected_engine_array(repo_cfg), 
                             await repo_cfg.repo_url))
 
             if len(project_schedules) > 0:
@@ -103,7 +124,7 @@ class Scheduler:
                     return {project_json['id'] : [utils.ProjectSchedule(project_json['id'], 
                         ss.get_crontab_schedule(), 
                         await repo_cfg.primary_branch, 
-                        utils.normalize_selected_engines_from_tag('all', await repo_cfg.is_scm_imported),
+                        await self.__get_selected_engine_array(repo_cfg),
                         await repo_cfg.repo_url)]}
         else:
             if self.__default_schedule is not None and bad_cb is not None:

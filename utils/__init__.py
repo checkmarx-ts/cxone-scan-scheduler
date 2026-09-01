@@ -6,6 +6,9 @@ from pathlib import Path
 from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint, CxOneApiEndpoint
 from typing import List, Dict, Union
 
+
+SCHEDULE_TAG = "scheduled"
+
 def logger():
     return logging.getLogger("utils")
 
@@ -83,11 +86,16 @@ def load_endpoints(tenant_name):
 
 
 def load_default_schedule():
-    if 'DEFAULT_SCHEDULE' in os.environ.keys():
-        return os.environ['DEFAULT_SCHEDULE']
-    else:
-        return None
+    return os.environ.get("DEFAULT_SCHEDULE")
 
+def load_default_engines(force_default : bool = False):
+    if not force_default:
+      val = os.environ.get("DEFAULT_ENGINES")
+
+      if val is not None and len(val) > 0:
+          return val
+
+    return "sast"
 
 def load_policies() -> Dict:
     default = {
@@ -269,18 +277,26 @@ def get_api_retries_config():
 def get_api_retry_delay_config():
     return get_int_from_env("API_RETRY_DELAY", 5, 30)
 
+def get_limit_engines() -> List[str] | None:
+    engine_list = os.environ.get("LIMIT_ENGINES")
+    if engine_list is not None:
+        return engine_list.split(",")
 
-def micro_engines():
+def supported_micro_engines():
     return ['2ms', 'scorecard']
 
-def available_engines(include_for_imported : bool):
+def supported_engines(include_for_imported : bool):
     # scorecard is only available for code repository imported projects
-    valid_micro_engines = micro_engines()
+    valid_micro_engines = supported_micro_engines()
 
     if not include_for_imported:
         valid_micro_engines.remove('scorecard')
 
-    engines = ['sast', 'kics','sca','apisec', 'containers'] + valid_micro_engines
+    engines = ['sast', 'kics','sca','apisec', 'containers', 'aisc'] + valid_micro_engines
+    limit_engines = get_limit_engines()
+    if limit_engines is not None:
+        engines = [engine for engine in engines if engine in limit_engines]
+
     return engines
 
 
@@ -289,8 +305,8 @@ def normalize_repo_enabled_engines(enabled_engines : List[str]):
     return [x if x != "ossfsecorecard" else "scorecard" for x in enabled_engines]
 
 def create_engine_scan_config(engines : List[str]) -> Union[List, Dict]:
-    requested_engines = [eng for eng in engines if eng not in micro_engines()]
-    requested_micro_engines = [eng for eng in engines if eng in micro_engines()]
+    requested_engines = [eng for eng in engines if eng not in supported_micro_engines()]
+    requested_micro_engines = [eng for eng in engines if eng in supported_micro_engines()]
 
     cfg = [{'type' : eng, "value" : {}} for eng in requested_engines]
 
@@ -300,17 +316,20 @@ def create_engine_scan_config(engines : List[str]) -> Union[List, Dict]:
     return cfg
 
 
+def normalize_selected_engines_from_tag(engine_string : str | None, is_imported : bool) -> List[str]:
 
-def normalize_selected_engines_from_tag(engine_string, is_imported : bool):
-    available = available_engines(is_imported)
-    result = available if 'all' in engine_string.lower() or len(engine_string) == 0 else []
+    if engine_string is None:
+        return normalize_selected_engines_from_tag(load_default_engines(), is_imported)
+    
+    supported = supported_engines(is_imported)
 
-    if len(result) == 0:
-        requested = engine_string.lower().split(",")
-        for eng in requested:
-            if eng in available and not eng in result:
-                result.append(eng)
+    result = []
+    requested = engine_string.lower().split(",")
 
-    return result if len(result) > 0 else available
+    for eng in requested:
+        if eng in supported:
+            result.append(eng)
+
+    return result if len(result) > 0 else normalize_selected_engines_from_tag(load_default_engines(True), is_imported)
 
     
