@@ -111,8 +111,8 @@ The value for `<engines>` can be one of the following:
     * `scorecard` (only available for projects created by importing the repository)
 * A comma-separated list of two or more of the single engine names.
 
-Duplicated or invalid engine names are ignored.  If `LICENSED_ENGINES` is specified, engines
-not listed in `LICENSED_ENGINES` are ignored.
+Duplicated or invalid engine names are ignored.  If `LIMIT_ENGINES` is specified, engines
+not listed in `LIMIT_ENGINES` are ignored.
 
 The engines for the scan are chosen in the following precedence order:
 
