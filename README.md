@@ -115,7 +115,7 @@ Duplicated or invalid engine names are ignored.
 
 The engines for the scan are chosen in the following precedence order:
 
-1. Engines defined explicitly in the tag override all other engine selections.
+1. Engines defined explicitly in the project `schedule` tag override all other engine selections.
 2. For a project created with a code repository integration, the engines selected in the "Code Repository"
 project settings.
 3. The engines used for the last scan invoked by the scheduler.
