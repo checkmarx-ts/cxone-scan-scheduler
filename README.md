@@ -4,8 +4,8 @@ The cxone-scan-scheduler provides a method of automating scan invocation by cade
 It does not use the Checkmarx One native scheduled scans feature.  It is a completely
 separate method of scheduling scans that runs external to Checkmarx One.
 
-**This documentation is compiled into a Claude skill that can be downloaded from the release
-artifacts.  The skill provides AI guided configuration and deployment for those wanting a faster
+**This documentation is compiled into an AI skill that can be downloaded from the release
+artifacts.  The skill provides AI-guided configuration and deployment for those wanting a faster
 path to deployment.**
 
 Some highlights of how `cxone-scan-scheduler` works:
@@ -99,7 +99,7 @@ Selection of the primary branch via the project configuration is shown in the im
 
 The value for `<engines>` can be one of the following:
 
-* Empty which follows the logic described below.
+* Empty, which follows the logic described below to select the engines.
 * A single engine name
 * A comma-separated list of two or more of the single engine names.
 
@@ -170,7 +170,7 @@ than one group matching a group schedule configuration, it will be scheduled wit
 
 At the scheduled time of a scan, the scan will execute unless another
 scheduled scan is executing for that project.  This will prevent overlapping schedules
-starting multiple scans or long-running scans from being started before
+from starting multiple scans or long-running scans from being started before
 the previously scheduled scan is completed.
 
 Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.
@@ -230,7 +230,7 @@ the configured group schedule assignments.  If not using group schedule assignme
 OAuth client does not require this role.
 
 Group and role assignments can be applied to the OAuth client to limit the actions
-the client can perform.  The `ast-scanner` role will typically provide all required
+the client can perform.  The `ast-scanner` role will typically provide all
 roles needed to perform scanning.  Custom roles can be created to restrict the
 actions that can be taken by the OAuth client.  The minimal roles must allow the OAuth
 client to:
@@ -248,7 +248,7 @@ The Checkmarx One IAM has "New" and "Old" versions as of 2025.  Tenants created 
 With the "New" IAM, OAuth clients must be assigned a resource authorization so that the
 client can operate on projects.  It is suggested to set the Scheduler's OAuth
 client authorization at the tenant level so that it can operate on all projects. It
-is possible to set the authorization at different resource levels but this may
+is possible to set the authorization at different resource levels, but this may
 require manual configuration steps to enable scanning.
 
 ### Environment Variables
@@ -258,10 +258,10 @@ The following runtime environment variables are required to configure the system
 |Variable|Default|Description|
 |-|-|-|
 |`API_RETRIES`|3|The number of times communicating with the Checkmarx One API will retry upon failure.|
-|`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failure Checkmarx One API request.|
+|`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failed Checkmarx One API request.|
 |`API_TIMEOUT`|60|Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.|
 |`CXONE_REGION`|N/A|Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
-|`DEFAULT_ENGINES`|`sast`|A comma-separated list of scan engines to use if scan engines to use can't be determined.|
+|`DEFAULT_ENGINES`|`sast`|A comma-separated list of scan engines to use if engines can't be determined.|
 |`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
 |`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
 |`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
@@ -270,7 +270,7 @@ The following runtime environment variables are required to configure the system
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
 |`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
 |`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
-|`RECENT_SCAN_HOURS`|0|This is used to set a policy of not performing a scheduled scan if a successful scan has been executed with the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check.|
+|`RECENT_SCAN_HOURS`|0|This is used to set a policy of not performing a scheduled scan if a successful scan has been executed within the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check.|
 |`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|
 |`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
 |`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
@@ -397,8 +397,8 @@ The options provided to the settings should be modified to meet your installatio
 
 ### Deploying the Secrets
 
-After the Helm chart is installed, it will not execute until deployment of a generic secret containing the required secret values
-in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
+After the Helm chart is installed, it will not execute until a generic secret containing the required secret values
+is deployed in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
 
 ```bash
 kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \ 
@@ -452,7 +452,7 @@ Setting the `FETCH_THROTTLE` environment variable to `True` will monitor the sou
 a submitted scan.  The monitoring logic will attempt to detect when the source fetch phase of the scan
 is completed before allowing another concurrent scan submission.  The logic will check the source fetch workflow
 for `FETCH_WAIT_SECONDS` number of seconds before aborting the wait.  This prevents
-very large projects from stopping all concurrent scheduled scan submission.
+very large projects from stopping all concurrent scheduled scan submissions.
 
 The use of the fetch throttling feature is recommended only for those Checkmarx One tenants that have licensed
 100 or more concurrent scans.  Source fetching executes only when scans enter the "running" state; for 100
