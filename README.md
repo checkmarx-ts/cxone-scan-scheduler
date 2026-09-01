@@ -349,12 +349,21 @@ docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/check
 #### Python Debugger Execution
 
 If you are a developer that wants to modify the code, you can execute
-the container so that you can attach a remote debugger instance.  The
-following command line is an example of how to execute the scheduler
+the container so that you can attach a remote debugger instance.  This does not
+work with a Kubernetes deployment.
+
+It is first required to build a debug version of the container.  From the cloned
+repository directory, the following command will build the debug container:
+
+```bash
+docker build -t scheduler:debug --target=debug .
+```
+
+The following command line is an example of how to execute the scheduler
 so that it waits for a remote debugger to attach before starting:
 
 ```bash
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
+docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:debug -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
 ```
 
 ## Execution with Kubernetes
