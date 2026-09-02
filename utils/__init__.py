@@ -395,7 +395,7 @@ def normalize_selected_engines_from_tag(
     supported = desired_engines(is_imported)
 
     result = []
-    requested = engine_string.lower().split(",")
+    requested = [eng.strip() for eng in engine_string.lower().split(",")]
 
     for eng in requested:
         if eng in supported:
