@@ -135,6 +135,16 @@ spec:
               value: {{ .log_level | upper}}
               {{- end -}}
 
+              {{- if (not (empty .limit_engines) )}}
+            - name: LIMIT_ENGINES
+              value: {{ .limit_engines | lower}}
+              {{- end -}}
+
+              {{- if (not (empty .default_engines) )}}
+            - name: DEFAULT_ENGINES
+              value: {{ .default_engines | lower}}
+              {{- end -}}
+
               {{- if (not (empty .default_schedule) )}}
             - name: DEFAULT_SCHEDULE
               value: {{ .default_schedule | lower}}

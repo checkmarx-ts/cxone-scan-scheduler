@@ -1,5 +1,17 @@
 # Release Notes
 
+## v3.0
+* API changes in Checkmarx One now cause scan failures when requesting scans for unlicensed engines.
+  This has required that the engine selection of `all` has been removed.  The engine selection logic changes are
+  documented in `README.md`.
+* If using `all` for engine selection in any project tags, your scheduled scans will function differently.
+* The default schedule no longer uses `all`.  It follows the documented engine selection logic.
+* The optional configuration `DEFAULT_ENGINES` has been added to specify default scan engines to use
+  if the engine logic can't otherwise identify which engines to use.
+* The optional configuration `LIMIT_ENGINES` has been added to limit which engines will be used
+  when determining which engines to request in a scan.
+* Added support for the AI Supply Chain Security scanner.
+
 ## v2.2
 
 * Added Claude skill for guided configuration and deployment assistance.
@@ -9,7 +21,7 @@
 * Docker image upgraded to remediate CVE-2026-31431 (Copy Fail)
 * The container now executes as a low-privileged user.
 * Helm chart updates to improve security posture.
-* As of the time of release, Ubuntu 26.04 is has no patches for CVE-2026-43284 (Dirty Frag)
+* As of the time of release, Ubuntu 26.04 has no patches for CVE-2026-43284 (Dirty Frag)
   and CVE-2026-46300 (Fragnesia, CVE number not yet assigned). These are not currently exploitable
   in the scan scheduler given that the base docker image does not load the exploitable kernel
   modules.  The manual mitigation of each can be reviewed to verify that the modules are not loaded:
@@ -26,7 +38,7 @@ executing scans.
 * Implemented optional throttling by source fetch.
 * Implemented optional check for scans occurring a previous number of hours.  If so, the scheduled scan is skipped.
 * A Helm chart is now available as part of the release artifacts.  You can review the `values.yaml` file in the
-templates directory for configuration guidance when using Helm.
+Helm chart for configuration guidance.
 
 ## v1.7
 * Fixed an issue causing the scheduler to not start due to a Checkmarx One breaking API change when retrieving groups.

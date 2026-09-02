@@ -4,8 +4,8 @@ The cxone-scan-scheduler provides a method of automating scan invocation by cade
 It does not use the Checkmarx One native scheduled scans feature.  It is a completely
 separate method of scheduling scans that runs external to Checkmarx One.
 
-**This documentation is compiled into a Claude skill that can be downloaded from the release
-artifacts.  The skill provides AI guided configuration and deployment for those wanting a faster
+**This documentation is compiled into an AI skill that can be downloaded from the release
+artifacts.  The skill provides AI-guided configuration and deployment for those wanting a faster
 path to deployment.**
 
 Some highlights of how `cxone-scan-scheduler` works:
@@ -17,19 +17,19 @@ following methods:
     * A tag applied to the project with scan details.
     * By the project's group membership.
     * An optional default scan schedule that is applied to projects
-    that are not scheduled through one any other schedule criteria.
+    that are not scheduled through any other schedule criteria.
 * Scan schedules are updated periodically to adjust schedules
 based on changes in projects that would affect schedule assignments.
 
 ## Scheduling Project Scanning
 
-Scheduling scans for a project requires the project has a configured way to clone code from the repository to be scanned.
+Scheduling scans for a project requires that the project has a configured way to clone code from the repository to be scanned.
 If the repository is private, a supported set of credentials must also be configured so that the code for scanning can be
 cloned. Projects created using the "Code Repository" integration will have the clone credentials automatically managed without the need to configure credentials for each repository.
 
 The following methods can be used to schedule a scan:
 
-* The project is tagged with a `schedule` tag that specifies the schedule scan parameters.
+* The project is tagged with a `schedule` tag that specifies the scheduled scan parameters.
 * A project is assigned to one or more groups with a configured group schedule.
 * A default schedule is defined and the project is not configured for a scheduled scan via any other method.
 
@@ -99,37 +99,46 @@ Selection of the primary branch via the project configuration is shown in the im
 
 The value for `<engines>` can be one of the following:
 
-* `all` to scan with all engines.
-* Empty which follows the logic described below.
-* A single engine name, which is currently one of the following:
-    * `sast`
-    * `sca`
-    * `kics`
-    * `apisec`
-    * `containers`
-    * `2ms`
-    * `scorecard` (only available for projects created by importing the repository)
+* Empty, which follows the logic described below to select the engines.
+* A single engine name
 * A comma-separated list of two or more of the single engine names.
 
-Duplicated or invalid engine names are ignored.  
+The engine names are described in the following table.
+
+|Engine Name|Description|
+|-|-|
+|`sast`| Static Code Analysis|
+|`sca`| Software Composition Analysis|
+|`kics`| Infrastructure-as-Code|
+|`apisec`| API Security|
+|`containers`| Container Security|
+|`aisc`| AI Supply Chain Security|
+|`2ms`| Secrets |
+|`scorecard`| Repository Health (only available for projects created by importing the repository)|
+
+Duplicate or invalid engine names found in tags are ignored. If `LIMIT_ENGINES` is configured, engines
+specified in the tag that are not found in the `LIMIT_ENGINES` list are ignored.
 
 The engines for the scan are chosen in the following precedence order:
 
-1. Engines defined explicitly in the tag override all other engine selections.
+1. Engines defined explicitly in the project `schedule` tag override all other engine selections.
 2. For a project created with a code repository integration, the engines selected in the "Code Repository"
 project settings.
-3. Otherwise `all` engines are selected.
+3. The engines specified with the `DEFAULT_ENGINES` configuration option.
+4. The engines used for the last scan.
+
+If `LIMIT_ENGINES` is configured, engines not listed in `LIMIT_ENGINES` are not requested for the scan.
 
 ### Scheduling with a Default Schedule
 
 A default schedule can be applied to projects that are not [scheduled with a tag](#scheduling-via-tags)
 or [scheduled with a group](#scheduling-via-assigned-groups).  This method is not advised
 unless there are very few projects to schedule for scanning.  If a large number of projects are scheduled to scan
-by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly recommended that `FETCH_THROTTLE` is 
-also configured.  This will prevent a large number of scans from claiming all
+by default, it may cause other scans to take longer as they wait for an available scan engine. If using this option, it is highly
+recommended that `FETCH_THROTTLE` is also configured.  This will prevent a large number of scans from claiming all
 concurrent running scans and filling the scan queue.
 
-A default schedule  is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
+A default schedule is defined using the `DEFAULT_SCHEDULE` [configuration environment variable](#environment-variables).  Setting it to a schedule policy name 
 will cause all projects that have no deterministic schedule to assume the default schedule.
 
 ### Scheduling via Assigned Groups
@@ -161,13 +170,12 @@ than one group matching a group schedule configuration, it will be scheduled wit
 
 At the scheduled time of a scan, the scan will execute unless another
 scheduled scan is executing for that project.  This will prevent overlapping schedules
-starting multiple scans or long-running scans from being started before
+from starting multiple scans or long-running scans from being started before
 the previously scheduled scan is completed.
 
-Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.  Scans invoked for projects
-created with a Code Repository integration can't be tagged until the scan is complete.
-Since the scheduler keeps no state and does not monitor scan executions, scans for projects
-created by a Code Repository integration will not be tagged.
+Scans executed by the Scan Scheduler are tagged with `scheduled:<crontab string>` when scan tagging on scan invoke is possible.
+Scans invoked for projects created with a Code Repository integration can't be tagged until
+the scan is complete, so scans for projects of this type will not have this tag.
 
 If auditing scans from the list of all scans, filtering for scheduled scans
 can be accomplished using the `Initiator` column.  The initiator will use the name of
@@ -189,7 +197,7 @@ The custom certificates must meet the following criteria:
 
 * Must be in the PEM format.
 * Must be in a file ending with the extension `.crt`.
-* Only one certificate is in the file.
+* Only one certificate must be in the file.
 * Must be mapped to the container path `/usr/local/share/ca-certificates`.
 
 As an example, if using Docker, it is possible to map a local file to a file in the container with this
@@ -222,7 +230,7 @@ the configured group schedule assignments.  If not using group schedule assignme
 OAuth client does not require this role.
 
 Group and role assignments can be applied to the OAuth client to limit the actions
-the client can perform.  The `ast-scanner` role will typically provide all required
+the client can perform.  The `ast-scanner` role will typically provide all
 roles needed to perform scanning.  Custom roles can be created to restrict the
 actions that can be taken by the OAuth client.  The minimal roles must allow the OAuth
 client to:
@@ -240,34 +248,36 @@ The Checkmarx One IAM has "New" and "Old" versions as of 2025.  Tenants created 
 With the "New" IAM, OAuth clients must be assigned a resource authorization so that the
 client can operate on projects.  It is suggested to set the Scheduler's OAuth
 client authorization at the tenant level so that it can operate on all projects. It
-is possible to set the authorization at different resource levels but this may
+is possible to set the authorization at different resource levels, but this may
 require manual configuration steps to enable scanning.
 
 ### Environment Variables
 
-The following runtime environment variables are required to configure the system.  
+The following runtime environment variables are required to configure the system.
 
 |Variable|Default|Description|
 |-|-|-|
+|`API_RETRIES`|3|The number of times communicating with the Checkmarx One API will retry upon failure.|
+|`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failed Checkmarx One API request.|
+|`API_TIMEOUT`|60|Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.|
 |`CXONE_REGION`|N/A|Required for use with multi-tenant Checkmarx One tenants.  The endpoint region used by your Checkmarx One tenant.  This can be one of the following values: `US`, `US2`, `EU`, `EU2`, `DEU`, `ANZ`, `India`, `Singapore`, or `UAE`. If this is not supplied, the `SINGLE_TENANT_` variables must be defined.|
-|`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
-|`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
+|`DEFAULT_ENGINES`|`sast`|A comma-separated list of scan engines to use if engines can't be determined.|
 |`DEFAULT_SCHEDULE`|N/A|This defines the default schedule policy to apply to projects that do not have `schedule` tags.  If not provided, projects that do not meet scheduling criteria via tags or group schedules will not be scanned with the scheduler. The value of this environment variable must be a valid `<schedule>` policy name. The branch and engine configurations are not defined as part of the default schedule.|
-|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
-|`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|
-|`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
-|`SSL_VERIFY`|`True`|Set to `False` to turn off SSL certificate validation.|
-|`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
-|`UPDATE_DELAY_SECONDS`|43200| The number of seconds to delay between checking for updates in the schedule.|
-|`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
-|`TIMEZONE`|Etc/UTC|The [zoneinfo](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) string for the timezone.  If the zoneinfo string is invalid or not set, the timezone will default to UTC.|
-|`THREADS`|2|Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.|
 |`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
 |`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
-|`RECENT_SCAN_HOURS`|0|This is used to set a policy of not performing a scheduled scan if a successful scan has been executed with the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check.|
-|`API_TIMEOUT`|60|Set to the number of seconds to wait for the Checkmarx One API to respond to requests before failure.|
-|`API_RETRIES`|3|The number of times communicating with the Checkmarx One API will retry upon failure.|
-|`API_RETRY_DELAY`|15|The maximum number of seconds to wait before retrying a failure Checkmarx One API request.|
+|`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
+|`LIMIT_ENGINES`|N/A|A comma-separated list of scan engines that will be allowed when requesting engines to use in a scan. Engines outside of this list are ignored. If not configured, all supported engines are allowed.  See [notes about using `LIMIT_ENGINES`](#limiting-engines-used-in-scans).|
+|`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
+|`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
+|`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
+|`RECENT_SCAN_HOURS`|0|This is used to set a policy of not performing a scheduled scan if a successful scan has been executed within the past hours indicated by this value. It is recommended that this value be less than your schedule cadence (e.g. if you scan every 24 hours, this should be a maximum of 23 hours). The check does not inspect the scan configuration, only that the scan has successfully completed. The value of 0 (default) disables this check.|
+|`SCHEDULE_x`|N/A|`SCHEDULE_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `GROUP_x` environment variables having the same key value.  The value of this environment variable must be a valid `<schedule>` policy name.|
+|`SINGLE_TENANT_API`|N/A|The name of the single-tenant API endpoint host. (e.g. `myhost.cxone.cloud`)|
+|`SINGLE_TENANT_AUTH`|N/A|The name of the single-tenant IAM endpoint host. (e.g. `myhost.cxone.cloud`)|
+|`SSL_VERIFY`|`True`|Set to `False` to turn off SSL certificate validation.|
+|`THREADS`|2|Set to an integer value > 0 to increase the number of threads used when starting scans.  This also sets the max concurrent SCM clones executed if using `FETCH_THROTTLE`.|
+|`TIMEZONE`|Etc/UTC|The [zoneinfo](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) string for the timezone.  If the zoneinfo string is invalid or not set, the timezone will default to UTC.|
+|`UPDATE_DELAY_SECONDS`|43200| The number of seconds to delay between checking for updates in the schedule.|
 
 ### Policy Definitions
 
@@ -309,7 +319,7 @@ docker pull ghcr.io/checkmarx-ts/cxone/scan-scheduler:latest
 
 ### Executing the Container Image
 
-Execution methods may vary, but you must consider the following for execution:
+Execution methods may vary, but you must consider the following:
 
 1. How to define configuration environment variables.
 2. How to map secrets to `/run/secrets`
@@ -338,13 +348,22 @@ docker run -it -v $(pwd)/run/secrets/:/run/secrets --env-file .env ghcr.io/check
 
 #### Python Debugger Execution
 
-If you are a developer that wants to modify the code, you can execute
-the container so that you can attach a remote debugger instance.  The
-following command line is an example of how to execute the scheduler
+If you are a developer who wants to modify the code, you can execute
+the container so that you can attach a remote debugger instance.  This does not
+work with a Kubernetes deployment.
+
+It is first required to build a debug version of the container.  From the cloned
+repository directory, the following command will build the debug container:
+
+```bash
+docker build -t scheduler:debug --target=debug .
+```
+
+The following command line is an example of how to execute the scheduler
 so that it waits for a remote debugger to attach before starting:
 
 ```bash
-docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:latest -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
+docker run --rm -it -p 5678:5678 -v $(pwd)/run/secrets/:/run/secrets --env-file .env scheduler:debug -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client scheduler.py
 ```
 
 ## Execution with Kubernetes
@@ -378,11 +397,11 @@ The options provided to the settings should be modified to meet your installatio
 
 ### Deploying the Secrets
 
-After the Helm chart is installed, it will not execute until deployment of a generic secret containing the required secret values
-in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
+After the Helm chart is installed, it will not execute until a generic secret containing the required secret values
+is deployed in the `checkmarx` namespace. One method is to deploy the generic secret via the `kubectl` command line.  Example:
 
 ```bash
-kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \ 
+kubectl create secret generic --namespace=checkmarx cxone-scan-scheduler-secrets \
     --from-literal=cxone_tenant=<tenant name> \
     --from-literal=cxone_oauth_client_id=<oauth client id> \
     --from-literal=cxone_oauth_client_secret=<oauth client secret>
@@ -402,7 +421,8 @@ kubectl create configmap --namespace=checkmarx cxone-scheduler-custom-cas --from
 Then to install the custom CA, set `cxone.deployment.ca_certs_configmap_name` to use the ConfigMap.
 
 ```bash
-helm upgrade scheduler --reuse-values \
+helm upgrade scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/download/cxone-scan-scheduler_helm.tgz \
+--reuse-values \
 --set cxone.deployment.ca_certs_configmap_name=cxone-scheduler-custom-cas
 ```
 
@@ -410,6 +430,18 @@ If the value of `cxone.deployment.ca_certs_configmap_name` is not provided, no c
 will be mapped to the container.
 
 ## Other Notes
+
+### Limiting Engines used in Scans
+
+The configuration option `LIMIT_ENGINES` allows exclusion of one or more scan engines from executing
+during scheduled scans.  The limitation logic does not apply to engines defined with the `DEFAULT_ENGINES`
+configuration option.
+
+If a project is configured to request a scan engine that is not listed in the `LIMIT_ENGINES` list
+of engines, a scan will execute with the engine list taken from `DEFAULT_ENGINES`.  This is to prevent
+a schedule tag or Code Repository configuration from being set to an engine not listed in `LIMIT_ENGINES`
+when the option is used.  A project configured with an engine not in the `LIMIT_ENGINES` list would prevent
+scans from executing for the project.
 
 ### Scan Timing
 
@@ -433,7 +465,7 @@ Setting the `FETCH_THROTTLE` environment variable to `True` will monitor the sou
 a submitted scan.  The monitoring logic will attempt to detect when the source fetch phase of the scan
 is completed before allowing another concurrent scan submission.  The logic will check the source fetch workflow
 for `FETCH_WAIT_SECONDS` number of seconds before aborting the wait.  This prevents
-very large projects from stopping all concurrent scheduled scan submission.
+very large projects from stopping all concurrent scheduled scan submissions.
 
 The use of the fetch throttling feature is recommended only for those Checkmarx One tenants that have licensed
 100 or more concurrent scans.  Source fetching executes only when scans enter the "running" state; for 100
@@ -462,7 +494,7 @@ a sign that your SCM may need to be scaled to increase concurrent clone capacity
 
 ### Scheduling Controls via Group Membership
 
-It is possible to assign group membership to the OAuth Client.  The the minimum roles
+It is possible to assign group membership to the OAuth Client.  The minimum roles
 for a [custom composite role](#oauth-client) can be used in conjunction with group
 membership for different ways of controlling how scans are scheduled.
 

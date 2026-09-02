@@ -3,27 +3,39 @@ import os, re, logging, json
 from pathlib import Path
 from cron_validator import CronValidator
 from pathlib import Path
-from cxone_api import AuthRegionEndpoints, ApiRegionEndpoints, CxOneAuthEndpoint, CxOneApiEndpoint
+from cxone_api import (
+    AuthRegionEndpoints,
+    ApiRegionEndpoints,
+    CxOneAuthEndpoint,
+    CxOneApiEndpoint,
+)
 from typing import List, Dict, Union
+
+SCHEDULE_TAG = "scheduled"
+
 
 def logger():
     return logging.getLogger("utils")
 
+
 def get_log_level():
-    return "INFO" if os.getenv('LOG_LEVEL') is None else os.getenv('LOG_LEVEL')
+    return "INFO" if os.getenv("LOG_LEVEL") is None else os.getenv("LOG_LEVEL")
 
 
 def load_logging_config_dict(filename):
     with open(filename, "rt") as cfg:
-        config = json.load(cfg) 
-        config['loggers']['root']['level'] = get_log_level()
+        config = json.load(cfg)
+        config["loggers"]["root"]["level"] = get_log_level()
         return config
+
 
 def configure_normal_logging():
     logging.config.dictConfig(load_logging_config_dict("normal.json"))
 
+
 def configure_audit_logging():
     logging.config.dictConfig(load_logging_config_dict("audit.json"))
+
 
 def get_secret_path():
     tree = "run/secrets"
@@ -35,6 +47,7 @@ def get_secret_path():
         return f"./{tree}"
     else:
         return "."
+
 
 def load_secrets():
     path = get_secret_path()
@@ -53,7 +66,8 @@ def load_secrets():
 
     return (tenant, oauth_id, oauth_secret)
 
-def get_int_from_env(var_name : str, min_val : int, default_val : int):
+
+def get_int_from_env(var_name: str, min_val: int, default_val: int):
     if not var_name in os.environ.keys():
         return default_val
     else:
@@ -62,47 +76,50 @@ def get_int_from_env(var_name : str, min_val : int, default_val : int):
         except ValueError:
             return default_val
 
+
 def load_schedule_update_delay():
-    return get_int_from_env('UPDATE_DELAY_SECONDS', 15, 43200)
+    return get_int_from_env("UPDATE_DELAY_SECONDS", 15, 43200)
+
 
 def load_region():
-    if not 'CXONE_REGION' in os.environ.keys():
+    if not "CXONE_REGION" in os.environ.keys():
         return None
     else:
-        return os.environ['CXONE_REGION']
+        return os.environ["CXONE_REGION"]
 
 
 def load_endpoints(tenant_name):
     region = load_region()
     if region is not None:
         return AuthRegionEndpoints[region](tenant_name), ApiRegionEndpoints[region]()
-    elif 'SINGLE_TENANT_AUTH' in os.environ.keys() and 'SINGLE_TENANT_API' in os.environ.keys():
-        return CxOneAuthEndpoint(tenant_name, os.environ['SINGLE_TENANT_AUTH']), CxOneApiEndpoint(os.environ['SINGLE_TENANT_API']) 
+    elif (
+        "SINGLE_TENANT_AUTH" in os.environ.keys()
+        and "SINGLE_TENANT_API" in os.environ.keys()
+    ):
+        return CxOneAuthEndpoint(
+            tenant_name, os.environ["SINGLE_TENANT_AUTH"]
+        ), CxOneApiEndpoint(os.environ["SINGLE_TENANT_API"])
     else:
         return None, None
 
 
 def load_default_schedule():
-    if 'DEFAULT_SCHEDULE' in os.environ.keys():
-        return os.environ['DEFAULT_SCHEDULE']
-    else:
-        return None
+    return os.environ.get("DEFAULT_SCHEDULE")
 
 
 def load_policies() -> Dict:
-    default = {
-        "daily" : "0 0 * * *",
-        "hourly" : "0 * * * *"
-    }
+    default = {"daily": "0 0 * * *", "hourly": "0 * * * *"}
 
     policies = {}
-    
+
     for k in os.environ.keys():
         if k.lower().startswith("policy_"):
-            policy_name = k.lower()[len("policy_"):]
+            policy_name = k.lower()[len("policy_") :]
             policy_value = os.environ[k]
             if CronValidator.parse(policy_value) is None:
-                logger().error(f"Crontab string [{policy_value}] for policy {policy_name} is invalid, skipping.")
+                logger().error(
+                    f"Crontab string [{policy_value}] for policy {policy_name} is invalid, skipping."
+                )
                 continue
 
             normalized_policy_name = policy_name.replace("_", "*").replace("-", "*")
@@ -111,29 +128,28 @@ def load_policies() -> Dict:
                 if name not in policies.keys():
                     policies[name] = policy_value
                 else:
-                    logger().error(f"Policy [{name}] already exists, skipping duplicate definition")
+                    logger().error(
+                        f"Policy [{name}] already exists, skipping duplicate definition"
+                    )
 
             if normalized_policy_name == policy_name:
                 insert_policy(normalized_policy_name)
             else:
                 insert_policy(normalized_policy_name.replace("*", "-"))
                 insert_policy(normalized_policy_name.replace("*", "_"))
-    
+
     # Allow override of daily and hourly
-    merge = {k:default[k] for k in default.keys() if k not in policies.keys() }
-    
+    merge = {k: default[k] for k in default.keys() if k not in policies.keys()}
+
     return policies | merge
-
-
 
 
 class ScheduleString:
 
-
     def __init__(self, schedule, policy_dict):
         policy_strings = [f"^{x}$" for x in policy_dict.keys()]
         self.__validator = re.compile("|".join(policy_strings))
-        self.__schedule = schedule.lower().strip("\"\'")
+        self.__schedule = schedule.lower().strip("\"'")
         self.__policies = policy_dict
 
     def is_valid(self):
@@ -141,10 +157,10 @@ class ScheduleString:
             return not self.__validator.search(self.__schedule) is None
         except ValueError:
             return False
-    
+
     def get_crontab_schedule(self):
         return self.__policies[self.__schedule]
-        
+
     def __repr__(self):
         return self.get_crontab_schedule()
 
@@ -161,54 +177,57 @@ class ProjectSchedule:
     @property
     def project_id(self):
         return self.__project_id
-    
+
     @property
     def schedule(self):
         return str(self.__schedule)
-    
+
     @property
     def branch(self):
         return self.__branch
-    
+
     @property
     def engines(self):
         return self.__engines
-    
+
     @property
     def repo_url(self):
         return self.__repo_url
-    
+
     def __repr__(self):
         return f"{self.project_id}:{self.repo_url}:{self.branch}:{self.engines}:{self.schedule}"
-    
+
 
 class GroupSchedules:
-    
+
     def __init__(self):
         self.__index = {}
         self.__log = logging.getLogger("GroupSchedules")
 
-
     def add_schedule(self, group, schedule):
         if group in self.__index.keys():
-            self.__log.warning(f"Attempted to add duplicate schedule for group [{group}]")
+            self.__log.warning(
+                f"Attempted to add duplicate schedule for group [{group}]"
+            )
             return
 
         if schedule.is_valid():
             self.__index[group] = schedule.get_crontab_schedule()
         else:
-            self.__log.warning(f"Skipping invalid schedule [{schedule}] for group [{group}]")
-    
+            self.__log.warning(
+                f"Skipping invalid schedule [{schedule}] for group [{group}]"
+            )
+
     def get_schedule(self, group):
         if group in self.__index.keys():
             return self.__index[group]
         else:
             return None
-        
+
     @property
     def empty(self):
         return len(self.__index.keys()) == 0
-    
+
     def __repr__(self):
         return str(self.__index)
 
@@ -218,99 +237,183 @@ def load_group_schedules(policies):
 
     group_keys = [x for x in os.environ.keys() if x.startswith("GROUP_")]
 
-    schedule_keys = [f"SCHEDULE_{x[len('GROUP_'):]}" for x in group_keys if f"SCHEDULE_{x[len('GROUP_'):]}" in os.environ.keys()]
+    schedule_keys = [
+        f"SCHEDULE_{x[len('GROUP_'):]}"
+        for x in group_keys
+        if f"SCHEDULE_{x[len('GROUP_'):]}" in os.environ.keys()
+    ]
 
     for k in group_keys:
-        lookup = k[len("GROUP_"):]
+        lookup = k[len("GROUP_") :]
         schedkey = f"SCHEDULE_{lookup}"
         if schedkey in schedule_keys:
             ss = ScheduleString(os.environ[schedkey], policies)
             if ss.is_valid():
                 sched.add_schedule(os.environ[k], ss)
             else:
-                logger().error(f"{k} defines an invalid policy [{os.environ[schedkey]}], skipping.")
+                logger().error(
+                    f"{k} defines an invalid policy [{os.environ[schedkey]}], skipping."
+                )
 
     return sched
 
+
 def get_ssl_verify():
     if "SSL_VERIFY" in os.environ.keys():
-        return False if os.environ['SSL_VERIFY'].lower() == 'false' else True
+        return False if os.environ["SSL_VERIFY"].lower() == "false" else True
     else:
         return True
 
+
 def get_proxy_config():
     if "PROXY" in os.environ.keys():
-        proxy = os.environ['PROXY']
-        return {"http" : proxy, "https" : proxy}
+        proxy = os.environ["PROXY"]
+        return {"http": proxy, "https": proxy}
     else:
         return None
+
 
 def get_threads_config():
     return get_int_from_env("THREADS", 1, 2)
 
+
 def get_fetch_throttle():
     if "FETCH_THROTTLE" in os.environ.keys():
-        return True if os.environ['FETCH_THROTTLE'].lower() == 'true' else False
+        return True if os.environ["FETCH_THROTTLE"].lower() == "true" else False
     else:
         return False
+
 
 def get_fetch_timeout_config():
     return get_int_from_env("FETCH_WAIT_SECONDS", 0, 300)
 
+
 def get_recent_scan_hours_config():
     return get_int_from_env("RECENT_SCAN_HOURS", 0, 0)
+
 
 def get_api_timeout_config():
     return get_int_from_env("API_TIMEOUT", 10, 60)
 
+
 def get_api_retries_config():
     return get_int_from_env("API_RETRIES", 0, 3)
+
 
 def get_api_retry_delay_config():
     return get_int_from_env("API_RETRY_DELAY", 5, 30)
 
 
-def micro_engines():
-    return ['2ms', 'scorecard']
+def get_limit_engines() -> List[str] | None:
+    engine_list = os.environ.get("LIMIT_ENGINES")
+    if engine_list is not None:
+        validated = [
+            eng.strip()
+            for eng in engine_list.split(",")
+            if eng.strip() in supported_engines(True)
+        ]
+        return validated if len(validated) > 0 else None
 
-def available_engines(include_for_imported : bool):
+
+def load_default_engines(force_default: bool = False):
+    if not force_default:
+        cfg_val = os.environ.get("DEFAULT_ENGINES")
+
+        if cfg_val is not None and len(cfg_val) > 0:
+            validated = [
+                eng.strip()
+                for eng in cfg_val.split(",")
+                if eng.strip() in supported_engines(True)
+            ]
+            if len(validated) > 0:
+                return ",".join(validated)
+
+    return "sast"
+
+
+def supported_micro_engines():
+    return ["2ms", "scorecard"]
+
+
+def supported_engines(include_for_imported: bool):
     # scorecard is only available for code repository imported projects
-    valid_micro_engines = micro_engines()
+    valid_micro_engines = supported_micro_engines()
 
     if not include_for_imported:
-        valid_micro_engines.remove('scorecard')
+        valid_micro_engines.remove("scorecard")
 
-    engines = ['sast', 'kics','sca','apisec', 'containers'] + valid_micro_engines
+    return [
+        "sast",
+        "kics",
+        "sca",
+        "apisec",
+        "containers",
+        "aisc",
+    ] + valid_micro_engines
+
+
+def desired_engines(include_for_imported: bool):
+
+    engines = supported_engines(include_for_imported)
+
+    limit_engines = get_limit_engines()
+    if limit_engines is not None:
+        engines = [engine for engine in engines if engine in limit_engines]
+
     return engines
 
 
-def normalize_repo_enabled_engines(enabled_engines : List[str]):
+def normalize_repo_enabled_engines(enabled_engines: List[str]):
     # scorecard has a strange name in the repo config
     return [x if x != "ossfsecorecard" else "scorecard" for x in enabled_engines]
 
-def create_engine_scan_config(engines : List[str]) -> Union[List, Dict]:
-    requested_engines = [eng for eng in engines if eng not in micro_engines()]
-    requested_micro_engines = [eng for eng in engines if eng in micro_engines()]
 
-    cfg = [{'type' : eng, "value" : {}} for eng in requested_engines]
+def create_engine_scan_config(engines: List[str]) -> Union[List, Dict]:
+    requested_engines = [eng for eng in engines if eng not in supported_micro_engines()]
+    requested_micro_engines = [
+        eng for eng in engines if eng in supported_micro_engines()
+    ]
+
+    cfg = [{"type": eng, "value": {}} for eng in requested_engines]
 
     if len(requested_micro_engines) > 0:
-        cfg.append({'type' : 'microengines', 'value' : {eng : 'true' for eng in requested_micro_engines}})
+        cfg.append(
+            {
+                "type": "microengines",
+                "value": {eng: "true" for eng in requested_micro_engines},
+            }
+        )
 
     return cfg
 
 
+def normalize_selected_engines_from_tag(
+    engine_string: str | None,
+    is_imported: bool,
+    try_defaults: bool = True,
+) -> List[str]:
 
-def normalize_selected_engines_from_tag(engine_string, is_imported : bool):
-    available = available_engines(is_imported)
-    result = available if 'all' in engine_string.lower() or len(engine_string) == 0 else []
+    if engine_string is None:
+        return normalize_selected_engines_from_tag(load_default_engines(), is_imported)
 
-    if len(result) == 0:
-        requested = engine_string.lower().split(",")
-        for eng in requested:
-            if eng in available and not eng in result:
-                result.append(eng)
+    supported = desired_engines(is_imported)
 
-    return result if len(result) > 0 else available
+    result = []
+    requested = [eng.strip() for eng in engine_string.lower().split(",")]
 
-    
+    for eng in requested:
+        if eng in supported:
+            result.append(eng)
+
+    if len(result) > 0:
+        return result
+    elif try_defaults and len(result) == 0:
+        return normalize_selected_engines_from_tag(
+            load_default_engines(True), is_imported, False
+        )
+    elif not try_defaults and len(result) == 0:
+        return [
+            engine
+            for engine in load_default_engines().split(",")
+            if engine in supported_engines(is_imported)
+        ]

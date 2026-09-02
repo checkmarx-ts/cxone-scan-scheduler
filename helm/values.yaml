@@ -36,6 +36,8 @@ cxone:
     # Leave blank for default values.
     # See the README.md file for more information.
     default_schedule:
+    default_engines:
+    limit_engines:
     log_level:
     ssl_verify:
     proxy_url:

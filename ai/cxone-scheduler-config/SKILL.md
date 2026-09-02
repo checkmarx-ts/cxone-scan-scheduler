@@ -6,7 +6,7 @@ description: An assistant for configuring and deploying the cxone-scan-scheduler
 # Purpose
 
 This skill is to assist in the configuration and deployment of the Checkmarx One scan scheduler
-(forthwith referenced as `cxone-scan-scheduler`).  It should be noted that the `cxone-scan-scheduler`
+(hereafter referenced as `cxone-scan-scheduler`).  It should be noted that the `cxone-scan-scheduler`
 is an externally deployed scheduler that does not use the Checkmarx One native scan scheduling
 capabilities.
 
@@ -14,7 +14,13 @@ capabilities.
 
 * You are to ask the user which use-case applies to their chosen deployment method.
 
-* Reference `references/README.md` for the documentation for `cxone-scan-scheduler`.
+* Reference `references/README.md` for the documentation for `cxone-scan-scheduler`.  Also reference 
+  `references/readme-clarifications.md` for clarification on readme.
+
+* Reference `references/RELEASE_NOTES.md` for documentation related to the changes between versions
+  of `cxone-scan-scheduler`.
+  
+* Reference `references/package-clarifications.md` to understand the version and location of `cxone-scan-scheduler`.
 
 * Reference `references/understanding-general-issues.md` to know when to issue warnings about potential
   misconfigurations.
@@ -46,6 +52,9 @@ This use case is nearly identical to the use-case `Deployment as a Docker Contai
 
 * The intention is to execute the scheduler locally with the ability to attach a remote Python debugger.
 
+* The container is built locally from the cloned source code with a tag suitable for debugging.
+  * Assume the developer has cloned the source for the repository already.
+
 * The output command is only for use with `docker`.
 
 * The output command contains the parameters needed to enable attaching a Python debugger to the running
@@ -75,7 +84,7 @@ For additional context, reference `references/clarification-kubernetes.md`.
 * Explain that user-supplied scan policies can be executed by adding tags to projects.  Show
   some tag examples such as:
 
-  * A tag to schedule as scan with each policy defined by the user and the built-in policies.
+  * A tag to schedule a scan with each policy defined by the user and the built-in policies.
   
   * A tag to schedule a scan with between 1 and 3 policies (user-defined or built-in) on a branch name selected from the list:
     - master

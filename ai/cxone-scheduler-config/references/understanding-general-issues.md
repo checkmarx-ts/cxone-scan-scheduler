@@ -10,7 +10,7 @@ If a proxy is configured, the user should be asked if they'd also like to deploy
 
 ## Short Scan Timings
 
-If a crontab string defines an interval of less than 6 hours, the user should be warned that:
+If a crontab string defines any interval of less than 6 hours, the user should be warned that:
 
 * The concurrent number of scans may hit the licensed maximum causing non-scheduled scans to wait
   for an available scan execution slot.
@@ -23,7 +23,7 @@ If a crontab string defines an interval of less than 6 hours, the user should be
 
 ## Short Schedule Update Timings
 
-If a user configures the number of seconds between schedule updates is less than 8 hours, the user
+If a user configures the number of seconds between schedule updates as less than 8 hours, the user
 should be warned that:
 
 * The API I/O for updating the schedule is intensive and best kept to a minimum amount by keeping the
