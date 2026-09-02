@@ -106,21 +106,6 @@ def load_endpoints(tenant_name):
 def load_default_schedule():
     return os.environ.get("DEFAULT_SCHEDULE")
 
-
-def load_default_engines(force_default: bool = False):
-    if not force_default:
-        cfg_val = os.environ.get("DEFAULT_ENGINES")
-
-        if cfg_val is not None and len(cfg_val) > 0:
-            validated = [
-                eng for eng in cfg_val.split(",") if eng in supported_engines(True)
-            ]
-            if len(validated) > 0:
-                return ",".join(validated)
-
-    return "sast"
-
-
 def load_policies() -> Dict:
     default = {"daily": "0 0 * * *", "hourly": "0 * * * *"}
 
@@ -322,10 +307,22 @@ def get_limit_engines() -> List[str] | None:
     engine_list = os.environ.get("LIMIT_ENGINES")
     if engine_list is not None:
         validated = [
-            eng for eng in engine_list.split(",") if eng in supported_engines(True)
+            eng.strip() for eng in engine_list.split(",") if eng.strip() in supported_engines(True)
         ]
         return validated if len(validated) > 0 else None
 
+def load_default_engines(force_default: bool = False):
+    if not force_default:
+        cfg_val = os.environ.get("DEFAULT_ENGINES")
+
+        if cfg_val is not None and len(cfg_val) > 0:
+            validated = [
+                eng.strip() for eng in cfg_val.split(",") if eng.strip() in supported_engines(True)
+            ]
+            if len(validated) > 0:
+                return ",".join(validated)
+
+    return "sast"
 
 def supported_micro_engines():
     return ["2ms", "scorecard"]

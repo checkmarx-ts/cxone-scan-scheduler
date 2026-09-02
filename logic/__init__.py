@@ -115,7 +115,7 @@ class Scheduler:
                 await repo_cfg.is_scm_imported,
             )
         else:
-            # Get last scan from scheduler for non-repo-import projects
+            # Get last scan non-repo-import projects
             last_scheduled_scan = (
                 json_on_ok(
                     await retrieve_list_of_scans(
