@@ -8,6 +8,6 @@
   `https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/download/cxone-scan-scheduler_helm.tgz`
   which is correct for the `latest` version.  Unless the user specifically asks for the latest
   version, use the URL for the direct release tag:
-  `https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/download/<appVersion>` where `<appVersion>`
+  `https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/download/<appVersion>/cxone-scan-scheduler_helm.tgz` where `<appVersion>`
   comes from the Helm chart packaged in this skill.
 

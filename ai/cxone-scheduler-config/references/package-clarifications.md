@@ -11,4 +11,9 @@
   where `<appVersion>` is found in the Helm chart packaged with this skill.  Using `latest` will get the latest
   released version which may differ from the version in this skill.  Use the version in this skill unless the
   user specifically asks for `latest`.
-
+* Location of the Helm chart packaged in this skill can be found as a reference defined elsewhere in the skill package.
+* The Helm chart packaged in this skill is in an expanded directory and not a `.tgz` file.
+* The builtin schedule policy `hourly` has a crontab string of `0 * * * *`.
+* The builtin schedule policy `daily` has a crontab string of `0 0 * * *`.
+* Builtin schedule policies do not need to be explicitly defined by the user unless the user wishes to override the
+  schedule for that builtin schedule policy.

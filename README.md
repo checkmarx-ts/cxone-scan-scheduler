@@ -197,7 +197,7 @@ The custom certificates must meet the following criteria:
 
 * Must be in the PEM format.
 * Must be in a file ending with the extension `.crt`.
-* Only one certificate is in the file.
+* Only one certificate must be in the file.
 * Must be mapped to the container path `/usr/local/share/ca-certificates`.
 
 As an example, if using Docker, it is possible to map a local file to a file in the container with this
@@ -266,7 +266,7 @@ The following runtime environment variables are required to configure the system
 |`FETCH_THROTTLE`|False|Set to `True` to wait for the source code clone to complete before submitting another scan.|
 |`FETCH_WAIT_SECONDS`|300| The maximum number of seconds to wait for the source code clone to complete before abandoning the wait.  This allows other scan submission activity to continue in cases where the repository clone takes an excessively long time.|
 |`GROUP_x`|N/A|`GROUP_` is considered a prefix with the remainder of the environment variable name being a key value.  The key value is used to match `SCHEDULE_x` variables having the same key value. The value for this environment variable is a group path in the form of `/value/value/...` matching a group defined in Checkmarx One. This environment variable can be defined to apply a schedule to projects assigned to the defined group without the need to assign a `schedule` tag to the project.|
-|`LIMIT_ENGINES`|N/A|A comma-separated list of scan engines that will be allowed when requesting engines to use in a scan. Engines outside of this list are ignored. If not configured, all supported engines are allowed.  See notes about using `LIMIT_ENGINES`.|
+|`LIMIT_ENGINES`|N/A|A comma-separated list of scan engines that will be allowed when requesting engines to use in a scan. Engines outside of this list are ignored. If not configured, all supported engines are allowed.  See [notes about using `LIMIT_ENGINES`](#limiting-engines-used-in-scans).|
 |`LOG_LEVEL`|INFO|The logging level to control how much logging is emitted.  Set to `DEBUG` for more verbose logging output.|
 |`POLICY_<name>`|N/A|Define a custom policy with `<name>`.  See [Policy Definitions](#policy-definitions) for a description.  This must be a valid [crontab](https://crontab.guru/) string.|
 |`PROXY`|N/A|Set to the URL for an unauthenticated proxy. All http/s traffic will route through the specified proxy.|
@@ -421,7 +421,8 @@ kubectl create configmap --namespace=checkmarx cxone-scheduler-custom-cas --from
 Then to install the custom CA, set `cxone.deployment.ca_certs_configmap_name` to use the ConfigMap.
 
 ```bash
-helm upgrade scheduler --reuse-values \
+helm upgrade scheduler https://github.com/checkmarx-ts/cxone-scan-scheduler/releases/latest/download/cxone-scan-scheduler_helm.tgz \
+--reuse-values \
 --set cxone.deployment.ca_certs_configmap_name=cxone-scheduler-custom-cas
 ```
 
@@ -430,7 +431,7 @@ will be mapped to the container.
 
 ## Other Notes
 
-### Limiting Engines with `LIMIT_ENGINES`
+### Limiting Engines used in Scans
 
 The configuration option `LIMIT_ENGINES` allows exclusion of one or more scan engines from executing
 during scheduled scans.  The limitation logic does not apply to engines defined with the `DEFAULT_ENGINES`
